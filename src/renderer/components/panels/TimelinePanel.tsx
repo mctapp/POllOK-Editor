@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { useVideoStore, useADStore, useCCStore, useProjectStore } from '../../stores';
 
@@ -8,9 +8,10 @@ export function TimelinePanel() {
   const { descriptions, updateDescription, selectDescription } = useADStore();
   const { captions, updateCaption, selectCaption } = useCCStore();
 
-  const [zoom, setZoom] = useState(1); // 1 = 100%, 2 = 200%, etc.
+  const [zoom, setZoom] = useState(1);
   const [scrollLeft, setScrollLeft] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{
     type: 'ad' | 'cc';
     id: string;
@@ -27,9 +28,10 @@ export function TimelinePanel() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const getPositionPercent = (frame: number) => {
+  // 프레임을 백분율 위치로 변환 (심플하게)
+  const getPosition = (frame: number) => {
     if (duration === 0) return 0;
-    return (frame / duration) * 100 * zoom;
+    return (frame / duration) * 100;
   };
 
   const syncVideoPosition = useCallback(
@@ -46,10 +48,11 @@ export function TimelinePanel() {
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (duration === 0 || dragging) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left + scrollLeft;
-    const totalWidth = rect.width * zoom;
-    const percent = x / totalWidth;
+    // trackRef를 사용해서 정확한 클릭 위치 계산
+    if (!trackRef.current) return;
+    const trackRect = trackRef.current.getBoundingClientRect();
+    const x = e.clientX - trackRect.left;
+    const percent = x / trackRect.width;
     const frame = Math.round(percent * duration);
     syncVideoPosition(Math.max(0, Math.min(duration, frame)));
   };
@@ -96,11 +99,11 @@ export function TimelinePanel() {
   // 드래그 중
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!dragging || !timelineRef.current) return;
+      if (!dragging || !trackRef.current) return;
 
-      const rect = timelineRef.current.getBoundingClientRect();
+      const rect = trackRef.current.getBoundingClientRect();
       const deltaX = e.clientX - dragging.startX;
-      const totalWidth = (rect.width - 64) * zoom; // 64px = 라벨 영역
+      const totalWidth = rect.width;
       const deltaFrames = Math.round((deltaX / totalWidth) * duration);
 
       if (dragging.type === 'ad') {
@@ -133,7 +136,7 @@ export function TimelinePanel() {
         }
       }
     },
-    [dragging, duration, fps, zoom, updateDescription, updateCaption]
+    [dragging, duration, fps, updateDescription, updateCaption]
   );
 
   // 드래그 종료
@@ -141,8 +144,8 @@ export function TimelinePanel() {
     setDragging(null);
   }, []);
 
-  // 전역 이벤트 리스너
-  useState(() => {
+  // 전역 드래그 이벤트 리스너 (useEffect로 올바르게 처리)
+  useEffect(() => {
     if (dragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
@@ -151,16 +154,7 @@ export function TimelinePanel() {
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  });
-
-  // 드래그 이벤트 리스너
-  if (dragging) {
-    window.onmousemove = handleMouseMove;
-    window.onmouseup = handleMouseUp;
-  } else {
-    window.onmousemove = null;
-    window.onmouseup = null;
-  }
+  }, [dragging, handleMouseMove, handleMouseUp]);
 
   if (!project) {
     return (
@@ -206,22 +200,37 @@ export function TimelinePanel() {
         ref={timelineRef}
         className="flex-1 relative overflow-x-auto overflow-y-hidden"
         onScroll={handleScroll}
-        onClick={handleTimelineClick}
       >
-        <div style={{ width: timelineWidth, minWidth: '100%' }} className="h-full relative">
-          {/* AD 트랙 */}
-          <div className="h-1/3 border-b border-dark-border relative">
-            <div className="absolute left-0 top-0 bottom-0 w-16 bg-dark-bg flex items-center justify-center border-r border-dark-border z-10 sticky">
-              <span className="text-xs text-gray-500">AD</span>
+        <div className="h-full flex">
+          {/* 라벨 영역 */}
+          <div className="w-16 flex-shrink-0 bg-dark-bg border-r border-dark-border z-10">
+            <div className="h-1/3 flex items-center justify-center border-b border-dark-border">
+              <span className="text-xs text-brand-brown font-medium">AD</span>
             </div>
-            <div className="ml-16 h-full relative">
+            <div className="h-1/3 flex items-center justify-center border-b border-dark-border">
+              <span className="text-xs text-accent-green font-medium">CC</span>
+            </div>
+            <div className="h-1/3 flex items-center justify-center">
+              <span className="text-xs text-gray-500">Audio</span>
+            </div>
+          </div>
+
+          {/* 트랙 영역 */}
+          <div
+            ref={trackRef}
+            className="flex-1 relative"
+            style={{ width: `${100 * zoom}%`, minWidth: '100%' }}
+            onClick={handleTimelineClick}
+          >
+            {/* AD 트랙 */}
+            <div className="h-1/3 border-b border-dark-border relative">
               {descriptions.map((desc) => (
                 <div
                   key={desc.id}
-                  className="absolute top-1 bottom-1 bg-blue-600/60 border border-blue-500 rounded cursor-move hover:bg-blue-600/80 transition-colors group"
+                  className="absolute top-1 bottom-1 bg-brand-brown/60 border border-brand-brown rounded cursor-move hover:bg-brand-brown/80 transition-colors group"
                   style={{
-                    left: `${getPositionPercent(desc.tcIn) / zoom}%`,
-                    width: `${getPositionPercent(desc.tcOut - desc.tcIn) / zoom}%`,
+                    left: `${getPosition(desc.tcIn)}%`,
+                    width: `${Math.max(0.5, getPosition(desc.tcOut - desc.tcIn))}%`,
                     minWidth: '8px',
                   }}
                   onMouseDown={(e) => handleDragStart(e, 'ad', desc.id, 'move', desc.tcIn, desc.tcOut)}
@@ -234,32 +243,27 @@ export function TimelinePanel() {
                 >
                   {/* 왼쪽 리사이즈 핸들 */}
                   <div
-                    className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-blue-400/50"
+                    className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-accent-yellow/50"
                     onMouseDown={(e) => handleDragStart(e, 'ad', desc.id, 'resize-start', desc.tcIn, desc.tcOut)}
                   />
                   {/* 오른쪽 리사이즈 핸들 */}
                   <div
-                    className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-blue-400/50"
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-accent-yellow/50"
                     onMouseDown={(e) => handleDragStart(e, 'ad', desc.id, 'resize-end', desc.tcIn, desc.tcOut)}
                   />
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* CC 트랙 */}
-          <div className="h-1/3 border-b border-dark-border relative">
-            <div className="absolute left-0 top-0 bottom-0 w-16 bg-dark-bg flex items-center justify-center border-r border-dark-border z-10">
-              <span className="text-xs text-gray-500">CC</span>
-            </div>
-            <div className="ml-16 h-full relative">
+            {/* CC 트랙 */}
+            <div className="h-1/3 border-b border-dark-border relative">
               {captions.map((caption) => (
                 <div
                   key={caption.id}
-                  className="absolute top-1 bottom-1 bg-green-600/60 border border-green-500 rounded cursor-move hover:bg-green-600/80 transition-colors group"
+                  className="absolute top-1 bottom-1 bg-accent-green/60 border border-accent-green rounded cursor-move hover:bg-accent-green/80 transition-colors group"
                   style={{
-                    left: `${getPositionPercent(caption.tcIn) / zoom}%`,
-                    width: `${getPositionPercent(caption.tcOut - caption.tcIn) / zoom}%`,
+                    left: `${getPosition(caption.tcIn)}%`,
+                    width: `${Math.max(0.5, getPosition(caption.tcOut - caption.tcIn))}%`,
                     minWidth: '8px',
                   }}
                   onMouseDown={(e) => handleDragStart(e, 'cc', caption.id, 'move', caption.tcIn, caption.tcOut)}
@@ -272,35 +276,30 @@ export function TimelinePanel() {
                 >
                   {/* 왼쪽 리사이즈 핸들 */}
                   <div
-                    className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-green-400/50"
+                    className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-accent-yellow/50"
                     onMouseDown={(e) => handleDragStart(e, 'cc', caption.id, 'resize-start', caption.tcIn, caption.tcOut)}
                   />
                   {/* 오른쪽 리사이즈 핸들 */}
                   <div
-                    className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-green-400/50"
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 bg-accent-yellow/50"
                     onMouseDown={(e) => handleDragStart(e, 'cc', caption.id, 'resize-end', caption.tcIn, caption.tcOut)}
                   />
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* 파형 영역 (플레이스홀더) */}
-          <div className="h-1/3 relative">
-            <div className="absolute left-0 top-0 bottom-0 w-16 bg-dark-bg flex items-center justify-center border-r border-dark-border z-10">
-              <span className="text-xs text-gray-500">Audio</span>
-            </div>
-            <div className="ml-16 h-full flex items-center justify-center">
+            {/* 파형 영역 (플레이스홀더) */}
+            <div className="h-1/3 flex items-center justify-center">
               <span className="text-xs text-gray-600">오디오 파형 (추후 구현)</span>
             </div>
-          </div>
 
-          {/* 재생 위치 인디케이터 */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
-            style={{ left: `calc(64px + ${getPositionPercent(currentFrame) / zoom}%)` }}
-          >
-            <div className="absolute -top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-500 rotate-45" />
+            {/* 재생 위치 인디케이터 */}
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-accent-yellow z-20 pointer-events-none"
+              style={{ left: `${getPosition(currentFrame)}%` }}
+            >
+              <div className="absolute -top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-accent-yellow rotate-45" />
+            </div>
           </div>
         </div>
       </div>
@@ -309,8 +308,8 @@ export function TimelinePanel() {
       <div className="h-5 border-t border-dark-border bg-dark-bg flex items-center overflow-hidden">
         <div className="w-16 border-r border-dark-border flex-shrink-0" />
         <div
-          className="flex justify-between px-2 text-xs text-gray-600 font-timecode"
-          style={{ width: timelineWidth, minWidth: 'calc(100% - 64px)' }}
+          className="flex-1 flex justify-between px-2 text-xs text-gray-600 font-timecode"
+          style={{ width: `${100 * zoom}%`, minWidth: '100%' }}
         >
           <span>{formatTime(0)}</span>
           <span>{formatTime(Math.floor(duration / 4))}</span>

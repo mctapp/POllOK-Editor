@@ -27,6 +27,8 @@ interface VideoState {
   toggleMute: () => void;
   setInPoint: () => void;
   setOutPoint: () => void;
+  clearInPoint: () => void;
+  clearOutPoint: () => void;
   clearPoints: () => void;
   seekFrames: (delta: number) => void;
   seekSeconds: (delta: number) => void;
@@ -76,6 +78,14 @@ export const useVideoStore = create<VideoState>((set, get) => ({
   setOutPoint: () => {
     const { currentFrame } = get();
     set({ outPoint: currentFrame });
+  },
+
+  clearInPoint: () => {
+    set({ inPoint: null });
+  },
+
+  clearOutPoint: () => {
+    set({ outPoint: null });
   },
 
   clearPoints: () => {

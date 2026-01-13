@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Volume2, Clock } from 'lucide-react';
+import { Pencil, Trash2, Volume2, Clock, CheckSquare, Square } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
 import { useADStore, useVideoStore } from '../../stores';
 import { AD_TYPE_OPTIONS } from '../../../shared/constants';
@@ -126,11 +126,18 @@ export function ADCard({ description }: ADCardProps) {
     }
   };
 
+  const handleToggleReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateDescription(description.id, { needsReview: !description.needsReview });
+  };
+
   return (
     <div
       className={`p-3 rounded-lg border transition-colors cursor-pointer ${
         isSelected
-          ? 'bg-primary-900/30 border-primary-500'
+          ? 'bg-brand-brown/20 border-brand-brown'
+          : description.needsReview
+          ? 'bg-dark-surface border-accent-yellow/50'
           : 'bg-dark-surface border-dark-border hover:border-gray-500'
       }`}
       onClick={handleClick}
@@ -138,45 +145,62 @@ export function ADCard({ description }: ADCardProps) {
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
-        {isEditingTimecode ? (
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="text"
-              value={editTcIn}
-              onChange={(e) => setEditTcIn(e.target.value)}
-              onKeyDown={handleTimecodeKeyDown}
-              onBlur={handleTimecodesSave}
-              className="w-24 font-timecode text-xs bg-dark-bg border border-primary-500 rounded px-1 py-0.5 text-white focus:outline-none"
-              autoFocus
-            />
-            <span className="text-gray-600">→</span>
-            <input
-              type="text"
-              value={editTcOut}
-              onChange={(e) => setEditTcOut(e.target.value)}
-              onKeyDown={handleTimecodeKeyDown}
-              onBlur={handleTimecodesSave}
-              className="w-24 font-timecode text-xs bg-dark-bg border border-primary-500 rounded px-1 py-0.5 text-white focus:outline-none"
-            />
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTimecodeEdit();
-            }}
+        <div className="flex items-center gap-2">
+          {/* 검토 체크박스 */}
+          <button
+            onClick={handleToggleReview}
+            className={`transition-colors ${
+              description.needsReview ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400'
+            }`}
+            title={description.needsReview ? '검토 완료로 표시' : '검토 필요로 표시'}
           >
-            <span className="font-timecode text-xs text-gray-400">
-              {formatTimecode(description.tcIn)}
-            </span>
-            <span className="text-gray-600">→</span>
-            <span className="font-timecode text-xs text-gray-400">
-              {formatTimecode(description.tcOut)}
-            </span>
-          </div>
-        )}
-        <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">{typeLabel}</span>
+            {description.needsReview ? (
+              <CheckSquare className="w-4 h-4" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+          </button>
+
+          {isEditingTimecode ? (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={editTcIn}
+                onChange={(e) => setEditTcIn(e.target.value)}
+                onKeyDown={handleTimecodeKeyDown}
+                onBlur={handleTimecodesSave}
+                className="w-24 font-timecode text-xs bg-dark-bg border border-brand-brown rounded px-1 py-0.5 text-white focus:outline-none"
+                autoFocus
+              />
+              <span className="text-gray-600">→</span>
+              <input
+                type="text"
+                value={editTcOut}
+                onChange={(e) => setEditTcOut(e.target.value)}
+                onKeyDown={handleTimecodeKeyDown}
+                onBlur={handleTimecodesSave}
+                className="w-24 font-timecode text-xs bg-dark-bg border border-brand-brown rounded px-1 py-0.5 text-white focus:outline-none"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTimecodeEdit();
+              }}
+            >
+              <span className="font-timecode text-xs text-gray-400">
+                {formatTimecode(description.tcIn)}
+              </span>
+              <span className="text-gray-600">→</span>
+              <span className="font-timecode text-xs text-gray-400">
+                {formatTimecode(description.tcOut)}
+              </span>
+            </div>
+          )}
+        </div>
+        <span className="text-xs px-2 py-0.5 bg-brand-brown/30 rounded text-brand-brown">{typeLabel}</span>
       </div>
 
       {/* 내용 */}
@@ -188,7 +212,7 @@ export function ADCard({ description }: ADCardProps) {
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
           onClick={(e) => e.stopPropagation()}
-          className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-primary-500 focus:outline-none"
+          className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-brand-brown focus:outline-none"
           rows={3}
           placeholder="해설 텍스트를 입력하세요..."
         />

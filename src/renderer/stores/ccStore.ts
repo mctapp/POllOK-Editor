@@ -49,6 +49,7 @@ export const useCCStore = create<CCState>((set, get) => ({
       align: (caption.align as Alignment) ?? 'center',
       type: (caption.type as CaptionType) ?? 'dialogue',
       style: caption.style ?? { color: '#FFFFFF', background: '#000000CC' },
+      needsReview: caption.needsReview ?? false,
       createdAt: now,
       modifiedAt: now,
     };
