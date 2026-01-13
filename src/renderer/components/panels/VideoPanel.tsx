@@ -20,6 +20,7 @@ export function VideoPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const isSeekingRef = useRef(false);
+  const currentFrameRef = useRef(0);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
 
@@ -180,25 +181,27 @@ export function VideoPanel() {
     }
   }, [fps, inPoint, outPoint, isSeeking, setCurrentFrame, setIsPlaying]);
 
+  // currentFrame을 ref에 항상 동기화 (최신 값 유지)
+  useEffect(() => {
+    currentFrameRef.current = currentFrame;
+  }, [currentFrame]);
+
   // 재생/일시정지 동기화
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !source) return;
 
     if (isPlaying) {
-      // 재생 전에 현재 프레임 위치로 동기화
+      // 재생 전에 현재 프레임 위치로 동기화 (ref에서 최신 값 읽기)
       if (fps > 0 && duration > 0) {
-        const targetTime = currentFrame / fps;
-        // 현재 위치와 다르면 동기화
-        if (Math.abs(video.currentTime - targetTime) > 0.1) {
-          video.currentTime = targetTime;
-        }
+        const targetTime = currentFrameRef.current / fps;
+        video.currentTime = targetTime;
       }
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [isPlaying, source, currentFrame, fps, duration, setIsPlaying]);
+  }, [isPlaying, source, fps, duration, setIsPlaying]);
 
   // 재생 속도 동기화
   useEffect(() => {
