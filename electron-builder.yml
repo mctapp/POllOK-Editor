@@ -7,7 +7,7 @@ directories:
   buildResources: resources
 
 files:
-  - dist/**/*
+  - out/**/*
   - package.json
 
 mac:

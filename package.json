@@ -2,7 +2,7 @@
   "name": "accessflow",
   "version": "0.1.0",
   "description": "AD/CC Script Editor for accessibility",
-  "main": "dist/main/index.js",
+  "main": "out/main/index.js",
   "author": "AccessFlow Team",
   "license": "MIT",
   "scripts": {
