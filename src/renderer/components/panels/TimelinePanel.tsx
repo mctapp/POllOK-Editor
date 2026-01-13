@@ -9,9 +9,8 @@ export function TimelinePanel() {
   const { captions, updateCaption, selectCaption } = useCCStore();
 
   const [zoom, setZoom] = useState(1);
-  const [scrollLeft, setScrollLeft] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const trackContainerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{
     type: 'ad' | 'cc';
     id: string;
@@ -28,34 +27,42 @@ export function TimelinePanel() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // 프레임을 백분율 위치로 변환 (심플하게)
+  // 프레임을 백분율 위치로 변환
   const getPosition = (frame: number) => {
     if (duration === 0) return 0;
     return (frame / duration) * 100;
   };
 
+  // 비디오 위치 동기화 (직접 video element 제어)
   const syncVideoPosition = useCallback(
     (frame: number) => {
-      setCurrentFrame(frame);
-      const video = document.querySelector('video');
-      if (video) {
-        video.currentTime = frame / fps;
+      const clampedFrame = Math.max(0, Math.min(duration, frame));
+      setCurrentFrame(clampedFrame);
+
+      // 직접 video element의 currentTime 설정
+      const video = document.querySelector('video') as HTMLVideoElement;
+      if (video && fps > 0) {
+        video.currentTime = clampedFrame / fps;
       }
     },
-    [fps, setCurrentFrame]
+    [fps, duration, setCurrentFrame]
   );
 
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (duration === 0 || dragging) return;
+  // 타임라인 트랙 클릭 핸들러
+  const handleTrackClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (duration === 0 || dragging) return;
 
-    // trackRef를 사용해서 정확한 클릭 위치 계산
-    if (!trackRef.current) return;
-    const trackRect = trackRef.current.getBoundingClientRect();
-    const x = e.clientX - trackRect.left;
-    const percent = x / trackRect.width;
-    const frame = Math.round(percent * duration);
-    syncVideoPosition(Math.max(0, Math.min(duration, frame)));
-  };
+      const target = e.currentTarget;
+      const rect = target.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      const frame = Math.round(percent * duration);
+
+      syncVideoPosition(frame);
+    },
+    [duration, dragging, syncVideoPosition]
+  );
 
   const handleZoomIn = () => {
     setZoom((z) => Math.min(z * 1.5, 10));
@@ -63,10 +70,6 @@ export function TimelinePanel() {
 
   const handleZoomOut = () => {
     setZoom((z) => Math.max(z / 1.5, 0.5));
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollLeft(e.currentTarget.scrollLeft);
   };
 
   // 드래그 시작
@@ -80,6 +83,7 @@ export function TimelinePanel() {
   ) => {
     e.stopPropagation();
     e.preventDefault();
+
     setDragging({
       type,
       id,
@@ -89,19 +93,38 @@ export function TimelinePanel() {
       originalTcOut: tcOut,
     });
 
+    // 선택 및 비디오 위치 동기화
     if (type === 'ad') {
       selectDescription(id);
     } else {
       selectCaption(id);
     }
+    syncVideoPosition(tcIn);
+  };
+
+  // 카드 클릭 (드래그 없이)
+  const handleCardClick = (
+    e: React.MouseEvent,
+    type: 'ad' | 'cc',
+    id: string,
+    tcIn: number
+  ) => {
+    e.stopPropagation();
+
+    if (type === 'ad') {
+      selectDescription(id);
+    } else {
+      selectCaption(id);
+    }
+    syncVideoPosition(tcIn);
   };
 
   // 드래그 중
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!dragging || !trackRef.current) return;
+      if (!dragging || !trackContainerRef.current) return;
 
-      const rect = trackRef.current.getBoundingClientRect();
+      const rect = trackContainerRef.current.getBoundingClientRect();
       const deltaX = e.clientX - dragging.startX;
       const totalWidth = rect.width;
       const deltaFrames = Math.round((deltaX / totalWidth) * duration);
@@ -144,7 +167,7 @@ export function TimelinePanel() {
     setDragging(null);
   }, []);
 
-  // 전역 드래그 이벤트 리스너 (useEffect로 올바르게 처리)
+  // 전역 드래그 이벤트 리스너
   useEffect(() => {
     if (dragging) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -164,12 +187,13 @@ export function TimelinePanel() {
     );
   }
 
-  const timelineWidth = `${100 * zoom}%`;
+  // 줌 적용된 트랙 너비 (픽셀)
+  const trackWidthPercent = 100 * zoom;
 
   return (
     <div className="h-full bg-dark-surface flex flex-col">
       {/* 타임라인 헤더 */}
-      <div className="h-6 border-b border-dark-border flex items-center px-3 justify-between">
+      <div className="h-6 border-b border-dark-border flex items-center px-3 justify-between flex-shrink-0">
         <span className="text-xs text-gray-500">Timeline</span>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 font-timecode">
@@ -195,15 +219,14 @@ export function TimelinePanel() {
         </div>
       </div>
 
-      {/* 타임라인 콘텐츠 */}
+      {/* 타임라인 콘텐츠 - 가로 스크롤 가능 */}
       <div
         ref={timelineRef}
-        className="flex-1 relative overflow-x-auto overflow-y-hidden"
-        onScroll={handleScroll}
+        className="flex-1 overflow-x-auto overflow-y-hidden"
       >
-        <div className="h-full flex">
-          {/* 라벨 영역 */}
-          <div className="w-16 flex-shrink-0 bg-dark-bg border-r border-dark-border z-10">
+        <div className="h-full flex" style={{ minWidth: `${trackWidthPercent}%` }}>
+          {/* 라벨 영역 (고정) */}
+          <div className="w-16 flex-shrink-0 bg-dark-bg border-r border-dark-border sticky left-0 z-20">
             <div className="h-1/3 flex items-center justify-center border-b border-dark-border">
               <span className="text-xs text-brand-brown font-medium">AD</span>
             </div>
@@ -217,10 +240,9 @@ export function TimelinePanel() {
 
           {/* 트랙 영역 */}
           <div
-            ref={trackRef}
-            className="flex-1 relative"
-            style={{ width: `${100 * zoom}%`, minWidth: '100%' }}
-            onClick={handleTimelineClick}
+            ref={trackContainerRef}
+            className="flex-1 relative min-w-0"
+            onClick={handleTrackClick}
           >
             {/* AD 트랙 */}
             <div className="h-1/3 border-b border-dark-border relative">
@@ -234,11 +256,7 @@ export function TimelinePanel() {
                     minWidth: '8px',
                   }}
                   onMouseDown={(e) => handleDragStart(e, 'ad', desc.id, 'move', desc.tcIn, desc.tcOut)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    selectDescription(desc.id);
-                    syncVideoPosition(desc.tcIn);
-                  }}
+                  onClick={(e) => handleCardClick(e, 'ad', desc.id, desc.tcIn)}
                   title={desc.text || '화면해설'}
                 >
                   {/* 왼쪽 리사이즈 핸들 */}
@@ -267,11 +285,7 @@ export function TimelinePanel() {
                     minWidth: '8px',
                   }}
                   onMouseDown={(e) => handleDragStart(e, 'cc', caption.id, 'move', caption.tcIn, caption.tcOut)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    selectCaption(caption.id);
-                    syncVideoPosition(caption.tcIn);
-                  }}
+                  onClick={(e) => handleCardClick(e, 'cc', caption.id, caption.tcIn)}
                   title={caption.text || '자막'}
                 >
                   {/* 왼쪽 리사이즈 핸들 */}
@@ -295,7 +309,7 @@ export function TimelinePanel() {
 
             {/* 재생 위치 인디케이터 */}
             <div
-              className="absolute top-0 bottom-0 w-0.5 bg-accent-yellow z-20 pointer-events-none"
+              className="absolute top-0 bottom-0 w-0.5 bg-accent-yellow z-10 pointer-events-none"
               style={{ left: `${getPosition(currentFrame)}%` }}
             >
               <div className="absolute -top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-accent-yellow rotate-45" />
@@ -305,11 +319,11 @@ export function TimelinePanel() {
       </div>
 
       {/* 타임 룰러 */}
-      <div className="h-5 border-t border-dark-border bg-dark-bg flex items-center overflow-hidden">
+      <div className="h-5 border-t border-dark-border bg-dark-bg flex items-center overflow-hidden flex-shrink-0">
         <div className="w-16 border-r border-dark-border flex-shrink-0" />
         <div
-          className="flex-1 flex justify-between px-2 text-xs text-gray-600 font-timecode"
-          style={{ width: `${100 * zoom}%`, minWidth: '100%' }}
+          className="flex justify-between px-2 text-xs text-gray-600 font-timecode"
+          style={{ width: `${trackWidthPercent}%`, minWidth: 'calc(100% - 64px)' }}
         >
           <span>{formatTime(0)}</span>
           <span>{formatTime(Math.floor(duration / 4))}</span>

@@ -336,7 +336,7 @@ export function VideoPanel() {
                 {/* AD 오버레이 */}
                 {currentOverlayText.ad && (
                   <div className="max-w-[80%] px-4 py-2 bg-brand-brown/80 rounded-lg">
-                    <p className="text-white text-sm text-center font-medium">
+                    <p className="text-white text-sm text-center font-medium whitespace-pre-wrap">
                       <span className="text-accent-yellow text-xs mr-2">[AD]</span>
                       {currentOverlayText.ad}
                     </p>
@@ -346,7 +346,7 @@ export function VideoPanel() {
                 {/* CC 오버레이 */}
                 {currentOverlayText.cc && (
                   <div className="max-w-[80%] px-4 py-2 bg-black/80 rounded-lg">
-                    <p className="text-white text-sm text-center">
+                    <p className="text-white text-sm text-center whitespace-pre-wrap">
                       {currentOverlayText.cc}
                     </p>
                   </div>

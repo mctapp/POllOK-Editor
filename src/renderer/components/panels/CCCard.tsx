@@ -239,10 +239,10 @@ export function CCCard({ caption }: CCCardProps) {
           onClick={(e) => e.stopPropagation()}
           className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-accent-green focus:outline-none"
           rows={2}
-          placeholder="자막 텍스트를 입력하세요..."
+          placeholder="자막 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
         />
       ) : (
-        <p className="text-sm text-gray-200 mb-3">
+        <p className="text-sm text-gray-200 mb-3 whitespace-pre-wrap">
           {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
           {caption.type !== 'dialogue' && caption.text ? (
             <span className="text-gray-400">[{caption.text}]</span>
