@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        include:
+          - os: macos-latest
+            build_command: npm run dist:mac
+            artifacts: |
+              release/*.dmg
+              release/*.zip
+          - os: windows-latest
+            build_command: npm run dist:win
+            artifacts: |
+              release/*.exe
+          - os: ubuntu-latest
+            build_command: npm run dist:linux
+            artifacts: |
+              release/*.AppImage
+              release/*.deb
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package application
+        run: ${{ matrix.build_command }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifacts }}
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Notify Release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get release info
+        id: release_info
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Release notification
+        run: |
+          echo "Release ${{ steps.release_info.outputs.version }} has been created!"
+          echo "Please review the draft release and publish when ready."

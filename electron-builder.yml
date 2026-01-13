@@ -1,0 +1,44 @@
+appId: com.accessflow.app
+productName: AccessFlow
+copyright: Copyright 2026 AccessFlow Team
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - dist/**/*
+  - package.json
+
+mac:
+  category: public.app-category.video
+  icon: resources/icons/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+
+win:
+  icon: resources/icons/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+
+linux:
+  icon: resources/icons
+  category: AudioVideo
+  target:
+    - AppImage
+    - deb
+
+publish:
+  provider: github
+  owner: mctapp
+  repo: POllOK-Editor
