@@ -7,12 +7,14 @@ export const DEFAULT_PROJECT_SETTINGS = {
 };
 
 // 지원하는 비디오 형식
+// 참고: Chromium은 MP4 (H.264/AAC), WebM (VP8/VP9/Opus) 형식을 지원
+// MOV, MKV, AVI는 H.264 코덱 사용 시에만 재생 가능
 export const SUPPORTED_VIDEO_FORMATS = [
-  { name: 'MOV', extensions: ['mov'] },
-  { name: 'MP4', extensions: ['mp4', 'm4v'] },
-  { name: 'MKV', extensions: ['mkv'] },
-  { name: 'AVI', extensions: ['avi'] },
+  { name: 'MP4 (권장)', extensions: ['mp4', 'm4v'] },
   { name: 'WebM', extensions: ['webm'] },
+  { name: 'MOV', extensions: ['mov'] }, // H.264 코덱만 지원
+  { name: 'MKV', extensions: ['mkv'] }, // H.264 코덱만 지원
+  { name: 'AVI', extensions: ['avi'] }, // H.264 코덱만 지원
 ];
 
 // 지원하는 프로젝트 형식
