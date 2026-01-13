@@ -8,6 +8,7 @@ interface CCState {
   captions: Caption[];
   speakers: Speaker[];
   selectedIds: string[];
+  editingId: string | null; // 현재 편집 중인 ID
 
   // 캡션 액션
   addCaption: (caption: Partial<Caption>) => string;
@@ -18,6 +19,7 @@ interface CCState {
   clearSelection: () => void;
   setCaptions: (captions: Caption[]) => void;
   getCaptionAt: (frame: number) => Caption | undefined;
+  setEditingId: (id: string | null) => void;
 
   // 화자 액션
   addSpeaker: (name: string) => string;
@@ -32,6 +34,7 @@ export const useCCStore = create<CCState>((set, get) => ({
   captions: [],
   speakers: [],
   selectedIds: [],
+  editingId: null,
 
   addCaption: (caption) => {
     const now = new Date().toISOString();
@@ -53,6 +56,7 @@ export const useCCStore = create<CCState>((set, get) => ({
     set((state) => ({
       captions: [...state.captions, newCaption].sort((a, b) => a.tcIn - b.tcIn),
       selectedIds: [id],
+      editingId: id, // 자동으로 편집 모드 진입
     }));
 
     return id;
@@ -113,6 +117,10 @@ export const useCCStore = create<CCState>((set, get) => ({
     return captions.find((caption) => frame >= caption.tcIn && frame <= caption.tcOut);
   },
 
+  setEditingId: (id) => {
+    set({ editingId: id });
+  },
+
   addSpeaker: (name) => {
     const { speakers } = get();
     const id = uuidv4();
@@ -154,6 +162,6 @@ export const useCCStore = create<CCState>((set, get) => ({
   },
 
   reset: () => {
-    set({ captions: [], speakers: [], selectedIds: [] });
+    set({ captions: [], speakers: [], selectedIds: [], editingId: null });
   },
 }));

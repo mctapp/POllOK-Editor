@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Pencil, Trash2, Clock, User } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
 import { useCCStore, useVideoStore } from '../../stores';
@@ -9,13 +9,38 @@ interface CCCardProps {
 }
 
 export function CCCard({ caption }: CCCardProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [editText, setEditText] = useState(caption.text);
-  const { selectedIds, selectCaption, updateCaption, deleteCaption, speakers } = useCCStore();
+  const [editTcIn, setEditTcIn] = useState('');
+  const [editTcOut, setEditTcOut] = useState('');
+  const [isEditingTimecode, setIsEditingTimecode] = useState(false);
+
+  const {
+    selectedIds,
+    editingId,
+    selectCaption,
+    updateCaption,
+    deleteCaption,
+    setEditingId,
+    speakers,
+  } = useCCStore();
   const { fps, setCurrentFrame } = useVideoStore();
 
   const isSelected = selectedIds.includes(caption.id);
+  const isEditing = editingId === caption.id;
   const speaker = speakers.find((s) => s.id === caption.speakerId);
+
+  // 편집 모드 진입 시 textarea에 포커스
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isEditing]);
+
+  // 텍스트 동기화
+  useEffect(() => {
+    setEditText(caption.text);
+  }, [caption.text]);
 
   const formatTimecode = (frame: number) => {
     const totalSeconds = frame / fps;
@@ -31,6 +56,13 @@ export function CCCard({ caption }: CCCardProps) {
       .padStart(2, '0')}`;
   };
 
+  const parseTimecode = (tc: string): number | null => {
+    const parts = tc.split(':').map(Number);
+    if (parts.length !== 4 || parts.some(isNaN)) return null;
+    const [hours, minutes, seconds, frames] = parts;
+    return Math.floor((hours * 3600 + minutes * 60 + seconds) * fps + frames);
+  };
+
   const getDuration = () => {
     const durationFrames = caption.tcOut - caption.tcIn;
     const durationSeconds = durationFrames / fps;
@@ -39,17 +71,26 @@ export function CCCard({ caption }: CCCardProps) {
 
   const typeLabel = CC_TYPE_OPTIONS.find((opt) => opt.value === caption.type)?.label ?? '대사';
 
+  const syncVideoPosition = (frame: number) => {
+    setCurrentFrame(frame);
+    const video = document.querySelector('video');
+    if (video) {
+      video.currentTime = frame / fps;
+    }
+  };
+
   const handleClick = (e: React.MouseEvent) => {
     selectCaption(caption.id, e.ctrlKey || e.metaKey);
+    syncVideoPosition(caption.tcIn);
   };
 
   const handleDoubleClick = () => {
-    setCurrentFrame(caption.tcIn);
+    setEditingId(caption.id);
   };
 
   const handleSave = () => {
     updateCaption(caption.id, { text: editText });
-    setIsEditing(false);
+    setEditingId(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -58,7 +99,32 @@ export function CCCard({ caption }: CCCardProps) {
       handleSave();
     } else if (e.key === 'Escape') {
       setEditText(caption.text);
-      setIsEditing(false);
+      setEditingId(null);
+    }
+  };
+
+  const handleTimecodeEdit = () => {
+    setEditTcIn(formatTimecode(caption.tcIn));
+    setEditTcOut(formatTimecode(caption.tcOut));
+    setIsEditingTimecode(true);
+  };
+
+  const handleTimecodesSave = () => {
+    const newTcIn = parseTimecode(editTcIn);
+    const newTcOut = parseTimecode(editTcOut);
+
+    if (newTcIn !== null && newTcOut !== null && newTcIn < newTcOut) {
+      updateCaption(caption.id, { tcIn: newTcIn, tcOut: newTcOut });
+    }
+    setIsEditingTimecode(false);
+  };
+
+  const handleTimecodeKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleTimecodesSave();
+    } else if (e.key === 'Escape') {
+      setIsEditingTimecode(false);
     }
   };
 
@@ -87,18 +153,45 @@ export function CCCard({ caption }: CCCardProps) {
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="font-timecode text-xs text-gray-400">
-            {formatTimecode(caption.tcIn)}
-          </span>
-          <span className="text-gray-600">→</span>
-          <span className="font-timecode text-xs text-gray-400">
-            {formatTimecode(caption.tcOut)}
-          </span>
-        </div>
-        <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">
-          {typeLabel}
-        </span>
+        {isEditingTimecode ? (
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="text"
+              value={editTcIn}
+              onChange={(e) => setEditTcIn(e.target.value)}
+              onKeyDown={handleTimecodeKeyDown}
+              onBlur={handleTimecodesSave}
+              className="w-24 font-timecode text-xs bg-dark-bg border border-primary-500 rounded px-1 py-0.5 text-white focus:outline-none"
+              autoFocus
+            />
+            <span className="text-gray-600">→</span>
+            <input
+              type="text"
+              value={editTcOut}
+              onChange={(e) => setEditTcOut(e.target.value)}
+              onKeyDown={handleTimecodeKeyDown}
+              onBlur={handleTimecodesSave}
+              className="w-24 font-timecode text-xs bg-dark-bg border border-primary-500 rounded px-1 py-0.5 text-white focus:outline-none"
+            />
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTimecodeEdit();
+            }}
+          >
+            <span className="font-timecode text-xs text-gray-400">
+              {formatTimecode(caption.tcIn)}
+            </span>
+            <span className="text-gray-600">→</span>
+            <span className="font-timecode text-xs text-gray-400">
+              {formatTimecode(caption.tcOut)}
+            </span>
+          </div>
+        )}
+        <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">{typeLabel}</span>
       </div>
 
       {/* 화자 */}
@@ -114,13 +207,15 @@ export function CCCard({ caption }: CCCardProps) {
       {/* 내용 */}
       {isEditing ? (
         <textarea
+          ref={textareaRef}
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
+          onClick={(e) => e.stopPropagation()}
           className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-primary-500 focus:outline-none"
           rows={2}
-          autoFocus
+          placeholder="자막 텍스트를 입력하세요..."
         />
       ) : (
         <p className="text-sm text-gray-200 mb-3">
@@ -151,7 +246,7 @@ export function CCCard({ caption }: CCCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setIsEditing(true);
+              setEditingId(caption.id);
             }}
             className="p-1.5 text-gray-500 hover:text-white transition-colors"
             title="편집"

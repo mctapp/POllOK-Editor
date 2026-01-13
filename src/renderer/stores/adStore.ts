@@ -6,6 +6,7 @@ interface ADState {
   // 상태
   descriptions: AudioDescription[];
   selectedIds: string[];
+  editingId: string | null; // 현재 편집 중인 ID
 
   // 액션
   addDescription: (desc: Partial<AudioDescription>) => string;
@@ -16,12 +17,14 @@ interface ADState {
   clearSelection: () => void;
   setDescriptions: (descriptions: AudioDescription[]) => void;
   getDescriptionAt: (frame: number) => AudioDescription | undefined;
+  setEditingId: (id: string | null) => void;
   reset: () => void;
 }
 
 export const useADStore = create<ADState>((set, get) => ({
   descriptions: [],
   selectedIds: [],
+  editingId: null,
 
   addDescription: (desc) => {
     const now = new Date().toISOString();
@@ -41,6 +44,7 @@ export const useADStore = create<ADState>((set, get) => ({
     set((state) => ({
       descriptions: [...state.descriptions, newDescription].sort((a, b) => a.tcIn - b.tcIn),
       selectedIds: [id],
+      editingId: id, // 자동으로 편집 모드 진입
     }));
 
     return id;
@@ -101,7 +105,11 @@ export const useADStore = create<ADState>((set, get) => ({
     return descriptions.find((desc) => frame >= desc.tcIn && frame <= desc.tcOut);
   },
 
+  setEditingId: (id) => {
+    set({ editingId: id });
+  },
+
   reset: () => {
-    set({ descriptions: [], selectedIds: [] });
+    set({ descriptions: [], selectedIds: [], editingId: null });
   },
 }));
