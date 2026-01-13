@@ -11,28 +11,12 @@ export default defineConfig({
         '@main': path.resolve(__dirname, './src/main'),
       },
     },
-    build: {
-      outDir: 'dist/main',
-      rollupOptions: {
-        input: {
-          index: path.resolve(__dirname, 'src/main/index.ts'),
-        },
-      },
-    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
         '@shared': path.resolve(__dirname, './src/shared'),
-      },
-    },
-    build: {
-      outDir: 'dist/preload',
-      rollupOptions: {
-        input: {
-          index: path.resolve(__dirname, 'src/preload/index.ts'),
-        },
       },
     },
   },
@@ -47,7 +31,7 @@ export default defineConfig({
     },
     root: path.resolve(__dirname, 'src/renderer'),
     build: {
-      outDir: path.resolve(__dirname, 'dist/renderer'),
+      outDir: path.resolve(__dirname, 'out/renderer'),
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, 'src/renderer/index.html'),
