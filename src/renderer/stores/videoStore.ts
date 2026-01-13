@@ -108,8 +108,10 @@ export const useVideoStore = create<VideoState>((set, get) => ({
 
     // 비디오 요소 직접 제어
     const video = document.querySelector('video') as HTMLVideoElement;
+    console.log('seekToFrame: video element found?', !!video, 'frame:', clampedFrame);
     if (video && !isNaN(clampedFrame / fps)) {
       video.currentTime = clampedFrame / fps;
+      console.log('seekToFrame: set video.currentTime to', video.currentTime);
 
       // seeked 이벤트로 시킹 완료 감지
       const handleSeeked = () => {

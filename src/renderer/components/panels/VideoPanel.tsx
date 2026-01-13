@@ -192,16 +192,19 @@ export function VideoPanel() {
     if (!video || !source) return;
 
     if (isPlaying) {
-      // 재생 전에 현재 프레임 위치로 동기화 (ref에서 최신 값 읽기)
-      if (fps > 0 && duration > 0) {
-        const targetTime = currentFrameRef.current / fps;
+      // 재생 전에 현재 프레임 위치로 동기화
+      // zustand store에서 직접 최신 값 읽기 (React 상태 지연 문제 회피)
+      const state = useVideoStore.getState();
+      if (state.fps > 0 && state.duration > 0) {
+        const targetTime = state.currentFrame / state.fps;
+        console.log('Play: seeking to frame', state.currentFrame, 'time', targetTime);
         video.currentTime = targetTime;
       }
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [isPlaying, source, fps, duration, setIsPlaying]);
+  }, [isPlaying, source, setIsPlaying]);
 
   // 재생 속도 동기화
   useEffect(() => {
