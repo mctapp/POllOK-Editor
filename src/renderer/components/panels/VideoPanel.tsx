@@ -19,6 +19,7 @@ import { PLAYBACK_RATES } from '../../../shared/constants';
 export function VideoPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const isSeekingRef = useRef(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
 
@@ -29,6 +30,7 @@ export function VideoPanel() {
   const {
     source,
     isPlaying,
+    isSeeking,
     currentFrame,
     duration,
     fps,
@@ -160,6 +162,9 @@ export function VideoPanel() {
     const video = videoRef.current;
     if (!video) return;
 
+    // 시킹 중에는 timeupdate 무시 (드래그 중 프레임이 튀는 것 방지)
+    if (isSeekingRef.current || isSeeking) return;
+
     const currentTime = video.currentTime;
     const frame = Math.floor(currentTime * fps);
     setCurrentFrame(frame);
@@ -173,7 +178,7 @@ export function VideoPanel() {
         setIsPlaying(false);
       }
     }
-  }, [fps, inPoint, outPoint, setCurrentFrame, setIsPlaying]);
+  }, [fps, inPoint, outPoint, isSeeking, setCurrentFrame, setIsPlaying]);
 
   // 재생/일시정지 동기화
   useEffect(() => {
@@ -208,8 +213,23 @@ export function VideoPanel() {
       if (!video || fps <= 0 || duration <= 0) return;
 
       const clampedFrame = Math.max(0, Math.min(duration, frame));
-      video.currentTime = clampedFrame / fps;
+
+      // 시킹 시작 - timeupdate에서 프레임 덮어쓰기 방지
+      isSeekingRef.current = true;
       setCurrentFrame(clampedFrame);
+      video.currentTime = clampedFrame / fps;
+
+      // seeked 이벤트로 시킹 완료 감지
+      const handleSeeked = () => {
+        isSeekingRef.current = false;
+        video.removeEventListener('seeked', handleSeeked);
+      };
+      video.addEventListener('seeked', handleSeeked);
+
+      // 타임아웃 fallback (seeked 이벤트가 안 올 경우)
+      setTimeout(() => {
+        isSeekingRef.current = false;
+      }, 100);
     },
     [duration, fps, setCurrentFrame]
   );
