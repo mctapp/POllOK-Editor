@@ -1,3 +1,4 @@
+import { useRef, useEffect, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -7,12 +8,16 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
+  Upload,
 } from 'lucide-react';
 import { useVideoStore, useProjectStore } from '../../stores';
 import { PLAYBACK_RATES } from '../../../shared/constants';
 
 export function VideoPanel() {
-  const { project } = useProjectStore();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  const { project, setVideo } = useProjectStore();
   const {
     source,
     isPlaying,
@@ -22,50 +27,218 @@ export function VideoPanel() {
     playbackRate,
     volume,
     isMuted,
+    inPoint,
+    outPoint,
+    setSource,
+    setDuration,
+    setFps,
+    setResolution,
+    setCurrentFrame,
+    setIsPlaying,
     togglePlay,
-    seekFrames,
-    seekSeconds,
     setPlaybackRate,
     setVolume,
     toggleMute,
+    setInPoint,
+    setOutPoint,
   } = useVideoStore();
 
-  const formatTimecode = (frame: number) => {
-    const totalSeconds = frame / fps;
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    const frames = Math.floor(frame % fps);
+  // 타임코드 포맷
+  const formatTimecode = useCallback(
+    (frame: number) => {
+      const totalSeconds = frame / fps;
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = Math.floor(totalSeconds % 60);
+      const frames = Math.floor(frame % fps);
 
-    return `${hours.toString().padStart(2, '0')}:${minutes
-      .toString()
-      .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${frames
-      .toString()
-      .padStart(2, '0')}`;
-  };
+      return `${hours.toString().padStart(2, '0')}:${minutes
+        .toString()
+        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${frames
+        .toString()
+        .padStart(2, '0')}`;
+    },
+    [fps]
+  );
 
+  // 영상 로드
   const handleLoadVideo = async () => {
     const path = await window.api.file.selectVideo();
     if (path) {
-      useVideoStore.getState().setSource(path);
-      // TODO: 영상 메타데이터 로드
+      const fileUrl = window.api.utils.getFileUrl(path);
+      setSource(fileUrl);
+
+      // 프로젝트에 영상 정보 저장 (메타데이터는 loadedmetadata에서 설정)
+      if (project) {
+        const filename = path.split('/').pop() || path.split('\\').pop() || 'video';
+        setVideo({
+          path,
+          filename,
+          hash: '',
+          duration: 0,
+          durationFrames: 0,
+          fps: 24,
+          width: 0,
+          height: 0,
+          resolution: '',
+        });
+      }
     }
   };
 
+  // 메타데이터 로드
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const videoDuration = video.duration;
+    const detectedFps = 24; // 기본값, 실제로는 영상에서 감지 필요
+    const durationFrames = Math.floor(videoDuration * detectedFps);
+
+    setDuration(durationFrames);
+    setFps(detectedFps);
+    setResolution(video.videoWidth, video.videoHeight);
+
+    // 프로젝트 영상 정보 업데이트
+    if (project?.video) {
+      setVideo({
+        ...project.video,
+        duration: videoDuration,
+        durationFrames,
+        fps: detectedFps,
+        width: video.videoWidth,
+        height: video.videoHeight,
+        resolution: `${video.videoWidth}x${video.videoHeight}`,
+      });
+    }
+  }, [project?.video, setDuration, setFps, setResolution, setVideo]);
+
+  // 재생 시간 업데이트
+  const handleTimeUpdate = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const currentTime = video.currentTime;
+    const frame = Math.floor(currentTime * fps);
+    setCurrentFrame(frame);
+
+    // Out 포인트 체크 (구간 반복)
+    if (outPoint !== null && frame >= outPoint) {
+      if (inPoint !== null) {
+        video.currentTime = inPoint / fps;
+      } else {
+        video.pause();
+        setIsPlaying(false);
+      }
+    }
+  }, [fps, inPoint, outPoint, setCurrentFrame, setIsPlaying]);
+
+  // 재생/일시정지 동기화
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !source) return;
+
+    if (isPlaying) {
+      video.play().catch(() => setIsPlaying(false));
+    } else {
+      video.pause();
+    }
+  }, [isPlaying, source, setIsPlaying]);
+
+  // 재생 속도 동기화
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = playbackRate;
+  }, [playbackRate]);
+
+  // 볼륨 동기화
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.volume = isMuted ? 0 : volume;
+  }, [volume, isMuted]);
+
+  // 프레임 탐색
+  const seekToFrame = useCallback(
+    (frame: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      const clampedFrame = Math.max(0, Math.min(duration, frame));
+      video.currentTime = clampedFrame / fps;
+      setCurrentFrame(clampedFrame);
+    },
+    [duration, fps, setCurrentFrame]
+  );
+
+  // 프레임 이동
+  const handleSeekFrames = useCallback(
+    (delta: number) => {
+      seekToFrame(currentFrame + delta);
+    },
+    [currentFrame, seekToFrame]
+  );
+
+  // 초 이동
+  const handleSeekSeconds = useCallback(
+    (seconds: number) => {
+      const frames = Math.round(seconds * fps);
+      handleSeekFrames(frames);
+    },
+    [fps, handleSeekFrames]
+  );
+
+  // 프로그레스 바 클릭
+  const handleProgressClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = progressRef.current?.getBoundingClientRect();
+      if (!rect || duration === 0) return;
+
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      const frame = Math.round(percent * duration);
+      seekToFrame(frame);
+    },
+    [duration, seekToFrame]
+  );
+
+  // 비디오 클릭 시 재생/일시정지
+  const handleVideoClick = useCallback(() => {
+    togglePlay();
+  }, [togglePlay]);
+
+  // 재생 종료
+  const handleEnded = useCallback(() => {
+    setIsPlaying(false);
+    if (inPoint !== null) {
+      seekToFrame(inPoint);
+    }
+  }, [inPoint, seekToFrame, setIsPlaying]);
+
   const progress = duration > 0 ? (currentFrame / duration) * 100 : 0;
+  const inPointPercent = inPoint !== null && duration > 0 ? (inPoint / duration) * 100 : null;
+  const outPointPercent = outPoint !== null && duration > 0 ? (outPoint / duration) * 100 : null;
 
   return (
     <div className="h-full bg-black flex flex-col">
       {/* 비디오 영역 */}
-      <div className="flex-1 flex items-center justify-center relative">
+      <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-black">
         {source ? (
           <video
-            src={`file://${source}`}
-            className="max-w-full max-h-full"
-            onClick={togglePlay}
+            ref={videoRef}
+            src={source}
+            className="max-w-full max-h-full object-contain"
+            onClick={handleVideoClick}
+            onLoadedMetadata={handleLoadedMetadata}
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={handleEnded}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
           />
         ) : (
           <div className="text-center">
+            <Upload className="w-12 h-12 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-500 text-sm mb-4">
               {project ? '영상 파일을 불러오세요' : '프로젝트를 생성하거나 열어주세요'}
             </p>
@@ -79,11 +252,43 @@ export function VideoPanel() {
       </div>
 
       {/* 프로그레스 바 */}
-      <div className="h-1 bg-dark-surface">
+      <div
+        ref={progressRef}
+        className="h-2 bg-dark-surface cursor-pointer relative"
+        onClick={handleProgressClick}
+      >
+        {/* In/Out 포인트 영역 표시 */}
+        {inPointPercent !== null && outPointPercent !== null && (
+          <div
+            className="absolute top-0 bottom-0 bg-primary-900/50"
+            style={{
+              left: `${inPointPercent}%`,
+              width: `${outPointPercent - inPointPercent}%`,
+            }}
+          />
+        )}
+
+        {/* 진행 바 */}
         <div
-          className="h-full bg-primary-500 transition-all"
+          className="h-full bg-primary-500 transition-all duration-75"
           style={{ width: `${progress}%` }}
         />
+
+        {/* In 포인트 마커 */}
+        {inPointPercent !== null && (
+          <div
+            className="absolute top-0 bottom-0 w-1 bg-yellow-500"
+            style={{ left: `${inPointPercent}%` }}
+          />
+        )}
+
+        {/* Out 포인트 마커 */}
+        {outPointPercent !== null && (
+          <div
+            className="absolute top-0 bottom-0 w-1 bg-yellow-500"
+            style={{ left: `${outPointPercent}%` }}
+          />
+        )}
       </div>
 
       {/* 컨트롤 영역 */}
@@ -92,18 +297,20 @@ export function VideoPanel() {
         <div className="flex items-center justify-center gap-2 mb-3">
           {/* 10초 뒤로 */}
           <button
-            onClick={() => seekSeconds(-10)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleSeekSeconds(-10)}
+            className="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             title="10초 뒤로"
+            disabled={!source}
           >
             <SkipBack className="w-4 h-4" />
           </button>
 
           {/* 1프레임 뒤로 */}
           <button
-            onClick={() => seekFrames(-1)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleSeekFrames(-1)}
+            className="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             title="1프레임 뒤로 (←)"
+            disabled={!source}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -111,26 +318,29 @@ export function VideoPanel() {
           {/* 재생/일시정지 */}
           <button
             onClick={togglePlay}
-            className="w-12 h-12 rounded-full bg-primary-600 hover:bg-primary-500 text-white flex items-center justify-center transition-colors"
+            className="w-12 h-12 rounded-full bg-primary-600 hover:bg-primary-500 text-white flex items-center justify-center transition-colors disabled:opacity-50 disabled:hover:bg-primary-600"
             title={isPlaying ? '일시정지 (Space)' : '재생 (Space)'}
+            disabled={!source}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
 
           {/* 1프레임 앞으로 */}
           <button
-            onClick={() => seekFrames(1)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleSeekFrames(1)}
+            className="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             title="1프레임 앞으로 (→)"
+            disabled={!source}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
 
           {/* 10초 앞으로 */}
           <button
-            onClick={() => seekSeconds(10)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleSeekSeconds(10)}
+            className="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             title="10초 앞으로"
+            disabled={!source}
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -139,25 +349,61 @@ export function VideoPanel() {
         {/* 하단 컨트롤 */}
         <div className="flex items-center justify-between">
           {/* 타임코드 */}
-          <div className="font-timecode text-sm text-gray-300 w-32">
-            {formatTimecode(currentFrame)}
+          <div className="font-timecode text-sm text-gray-300 w-36">
+            <span>{formatTimecode(currentFrame)}</span>
+            <span className="text-gray-600 mx-1">/</span>
+            <span className="text-gray-500">{formatTimecode(duration)}</span>
           </div>
 
-          {/* 재생 속도 */}
-          <div className="flex items-center gap-1">
-            {PLAYBACK_RATES.filter((r) => r >= 0.5).map((rate) => (
+          {/* 재생 속도 + In/Out */}
+          <div className="flex items-center gap-3">
+            {/* In/Out 버튼 */}
+            <div className="flex items-center gap-1">
               <button
-                key={rate}
-                onClick={() => setPlaybackRate(rate)}
+                onClick={setInPoint}
                 className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                  playbackRate === rate
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-400 hover:text-white'
+                  inPoint !== null
+                    ? 'bg-yellow-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
                 }`}
+                title="In 포인트 설정 (I)"
+                disabled={!source}
               >
-                {rate}x
+                I
               </button>
-            ))}
+              <button
+                onClick={setOutPoint}
+                className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                  outPoint !== null
+                    ? 'bg-yellow-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+                title="Out 포인트 설정 (O)"
+                disabled={!source}
+              >
+                O
+              </button>
+            </div>
+
+            <div className="w-px h-4 bg-gray-600" />
+
+            {/* 재생 속도 */}
+            <div className="flex items-center gap-1">
+              {PLAYBACK_RATES.filter((r) => r >= 0.5).map((rate) => (
+                <button
+                  key={rate}
+                  onClick={() => setPlaybackRate(rate)}
+                  className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                    playbackRate === rate
+                      ? 'bg-primary-600 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  disabled={!source}
+                >
+                  {rate}x
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 볼륨 */}
@@ -165,6 +411,7 @@ export function VideoPanel() {
             <button
               onClick={toggleMute}
               className="text-gray-400 hover:text-white transition-colors"
+              disabled={!source}
             >
               {isMuted || volume === 0 ? (
                 <VolumeX className="w-4 h-4" />
@@ -180,6 +427,7 @@ export function VideoPanel() {
               value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
               className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+              disabled={!source}
             />
           </div>
         </div>

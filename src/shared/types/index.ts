@@ -13,8 +13,11 @@ export interface VideoInfo {
   path: string;
   filename: string;
   hash: string;
+  duration: number; // 초 단위
   durationFrames: number;
   fps: number;
+  width: number;
+  height: number;
   resolution: string;
 }
 
@@ -87,6 +90,7 @@ export const IpcChannels = {
   FILE_SAVE_PROJECT: 'file:saveProject',
   FILE_READ_PROJECT: 'file:readProject',
   FILE_CALCULATE_HASH: 'file:calculateHash',
+  FILE_GET_VIDEO_PATH: 'file:getVideoPath',
 
   // Export
   EXPORT_SRT: 'export:srt',
