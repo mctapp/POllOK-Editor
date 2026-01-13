@@ -18,6 +18,7 @@ export function VideoPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [isDraggingProgress, setIsDraggingProgress] = useState(false);
 
   const { project, setVideo } = useProjectStore();
   const {
@@ -223,19 +224,53 @@ export function VideoPanel() {
     [fps, handleSeekFrames]
   );
 
-  // 프로그레스 바 클릭
-  const handleProgressClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  // 프로그레스 바 위치 계산
+  const getFrameFromProgressEvent = useCallback(
+    (clientX: number) => {
       const rect = progressRef.current?.getBoundingClientRect();
-      if (!rect || duration === 0) return;
-
-      const x = e.clientX - rect.left;
+      if (!rect || duration === 0) return null;
+      const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
       const percent = x / rect.width;
-      const frame = Math.round(percent * duration);
-      seekToFrame(frame);
+      return Math.round(percent * duration);
     },
-    [duration, seekToFrame]
+    [duration]
   );
+
+  // 프로그레스 바 클릭/드래그 시작
+  const handleProgressMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const frame = getFrameFromProgressEvent(e.clientX);
+      if (frame !== null) {
+        seekToFrame(frame);
+        setIsDraggingProgress(true);
+      }
+    },
+    [getFrameFromProgressEvent, seekToFrame]
+  );
+
+  // 프로그레스 바 드래그 중
+  useEffect(() => {
+    if (!isDraggingProgress) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const frame = getFrameFromProgressEvent(e.clientX);
+      if (frame !== null) {
+        seekToFrame(frame);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingProgress(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingProgress, getFrameFromProgressEvent, seekToFrame]);
 
   // 비디오 클릭 시 재생/일시정지
   const handleVideoClick = useCallback(() => {
@@ -305,8 +340,8 @@ export function VideoPanel() {
       {/* 프로그레스 바 */}
       <div
         ref={progressRef}
-        className="h-2 bg-dark-surface cursor-pointer relative"
-        onClick={handleProgressClick}
+        className="h-2 bg-dark-surface cursor-pointer relative select-none"
+        onMouseDown={handleProgressMouseDown}
       >
         {/* In/Out 포인트 영역 표시 */}
         {inPointPercent !== null && outPointPercent !== null && (
