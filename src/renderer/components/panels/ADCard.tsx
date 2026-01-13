@@ -214,10 +214,10 @@ export function ADCard({ description }: ADCardProps) {
           onClick={(e) => e.stopPropagation()}
           className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-brand-brown focus:outline-none"
           rows={3}
-          placeholder="해설 텍스트를 입력하세요..."
+          placeholder="해설 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
         />
       ) : (
-        <p className="text-sm text-gray-200 mb-3 line-clamp-3">
+        <p className="text-sm text-gray-200 mb-3 whitespace-pre-wrap">
           {description.text || (
             <span className="text-gray-500 italic">해설 텍스트를 입력하세요</span>
           )}
