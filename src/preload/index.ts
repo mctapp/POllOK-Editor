@@ -41,6 +41,16 @@ const api = {
 
   // 플랫폼 정보
   platform: process.platform,
+
+  // 유틸리티
+  utils: {
+    // 파일 경로를 file:// URL로 변환
+    getFileUrl: (filePath: string): string => {
+      // Windows 경로 처리
+      const normalizedPath = filePath.replace(/\\/g, '/');
+      return `file://${normalizedPath}`;
+    },
+  },
 };
 
 // API를 window 객체에 노출
