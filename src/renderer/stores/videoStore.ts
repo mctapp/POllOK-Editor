@@ -95,14 +95,14 @@ export const useVideoStore = create<VideoState>((set, get) => ({
 
   seekToFrame: (frame) => {
     const { duration, fps } = get();
-    if (fps <= 0) return;
+    if (fps <= 0 || duration <= 0) return;
 
     const clampedFrame = Math.max(0, Math.min(duration, frame));
     set({ currentFrame: clampedFrame });
 
     // 비디오 요소 직접 제어
     const video = document.querySelector('video') as HTMLVideoElement;
-    if (video) {
+    if (video && !isNaN(clampedFrame / fps)) {
       video.currentTime = clampedFrame / fps;
     }
   },

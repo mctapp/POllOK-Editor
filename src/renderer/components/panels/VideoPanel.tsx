@@ -205,7 +205,7 @@ export function VideoPanel() {
   const seekToFrame = useCallback(
     (frame: number) => {
       const video = videoRef.current;
-      if (!video) return;
+      if (!video || fps <= 0 || duration <= 0) return;
 
       const clampedFrame = Math.max(0, Math.min(duration, frame));
       video.currentTime = clampedFrame / fps;
@@ -337,7 +337,6 @@ export function VideoPanel() {
                 {currentOverlayText.ad && (
                   <div className="max-w-[80%] px-4 py-2 bg-brand-brown/80 rounded-lg">
                     <p className="text-white text-sm text-center font-medium whitespace-pre-wrap">
-                      <span className="text-accent-yellow text-xs mr-2">[AD]</span>
                       {currentOverlayText.ad}
                     </p>
                   </div>
@@ -388,7 +387,7 @@ export function VideoPanel() {
       {/* 프로그레스 바 */}
       <div
         ref={progressRef}
-        className="h-3 bg-dark-bg cursor-pointer relative select-none group"
+        className="h-6 bg-dark-bg cursor-pointer relative select-none group"
         onMouseDown={handleProgressMouseDown}
       >
         {/* In/Out 포인트 영역 표시 */}
@@ -404,14 +403,14 @@ export function VideoPanel() {
 
         {/* 진행 바 */}
         <div
-          className="h-full bg-brand-brown pointer-events-none"
+          className="h-full bg-brand-brown transition-all pointer-events-none"
           style={{ width: `${progress}%` }}
         />
 
-        {/* 드래그 핸들 (hover 시 표시) */}
+        {/* 드래그 핸들 */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-accent-yellow rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ left: `calc(${progress}% - 6px)` }}
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-accent-yellow rounded-full shadow-lg pointer-events-none"
+          style={{ left: `calc(${progress}% - 8px)` }}
         />
 
         {/* In 포인트 마커 */}
