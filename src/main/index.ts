@@ -1,8 +1,21 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, protocol, net } from 'electron';
 import path from 'path';
 import { setupIpcHandlers } from './ipc';
 
 let mainWindow: BrowserWindow | null = null;
+
+// 로컬 파일 접근을 위한 커스텀 프로토콜 등록
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'local-file',
+    privileges: {
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: true,
+    },
+  },
+]);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -54,7 +67,15 @@ function createWindow() {
 }
 
 // 앱 준비 완료
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // 커스텀 프로토콜 핸들러 등록
+  protocol.handle('local-file', (request) => {
+    const filePath = decodeURIComponent(request.url.replace('local-file://', ''));
+    return net.fetch(`file://${filePath}`);
+  });
+
+  createWindow();
+});
 
 // 모든 창이 닫히면 앱 종료 (macOS 제외)
 app.on('window-all-closed', () => {

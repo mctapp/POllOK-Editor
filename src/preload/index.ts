@@ -44,11 +44,11 @@ const api = {
 
   // 유틸리티
   utils: {
-    // 파일 경로를 file:// URL로 변환
+    // 파일 경로를 local-file:// URL로 변환 (커스텀 프로토콜)
     getFileUrl: (filePath: string): string => {
       // Windows 경로 처리
       const normalizedPath = filePath.replace(/\\/g, '/');
-      return `file://${normalizedPath}`;
+      return `local-file://${encodeURIComponent(normalizedPath)}`;
     },
   },
 };
