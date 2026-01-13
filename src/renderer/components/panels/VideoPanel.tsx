@@ -186,11 +186,19 @@ export function VideoPanel() {
     if (!video || !source) return;
 
     if (isPlaying) {
+      // 재생 전에 현재 프레임 위치로 동기화
+      if (fps > 0 && duration > 0) {
+        const targetTime = currentFrame / fps;
+        // 현재 위치와 다르면 동기화
+        if (Math.abs(video.currentTime - targetTime) > 0.1) {
+          video.currentTime = targetTime;
+        }
+      }
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [isPlaying, source, setIsPlaying]);
+  }, [isPlaying, source, currentFrame, fps, duration, setIsPlaying]);
 
   // 재생 속도 동기화
   useEffect(() => {
