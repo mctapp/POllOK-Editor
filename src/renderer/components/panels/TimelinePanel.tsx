@@ -4,7 +4,7 @@ import { useVideoStore, useADStore, useCCStore, useProjectStore } from '../../st
 
 export function TimelinePanel() {
   const { project } = useProjectStore();
-  const { currentFrame, duration, fps, setCurrentFrame } = useVideoStore();
+  const { currentFrame, duration, fps, seekToFrame } = useVideoStore();
   const { descriptions, updateDescription, selectDescription } = useADStore();
   const { captions, updateCaption, selectCaption } = useCCStore();
 
@@ -33,21 +33,6 @@ export function TimelinePanel() {
     return (frame / duration) * 100;
   };
 
-  // 비디오 위치 동기화 (직접 video element 제어)
-  const syncVideoPosition = useCallback(
-    (frame: number) => {
-      const clampedFrame = Math.max(0, Math.min(duration, frame));
-      setCurrentFrame(clampedFrame);
-
-      // 직접 video element의 currentTime 설정
-      const video = document.querySelector('video') as HTMLVideoElement;
-      if (video && fps > 0) {
-        video.currentTime = clampedFrame / fps;
-      }
-    },
-    [fps, duration, setCurrentFrame]
-  );
-
   // 타임라인 트랙 클릭 핸들러
   const handleTrackClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -59,9 +44,9 @@ export function TimelinePanel() {
       const percent = x / rect.width;
       const frame = Math.round(percent * duration);
 
-      syncVideoPosition(frame);
+      seekToFrame(frame);
     },
-    [duration, dragging, syncVideoPosition]
+    [duration, dragging, seekToFrame]
   );
 
   const handleZoomIn = () => {
@@ -99,7 +84,7 @@ export function TimelinePanel() {
     } else {
       selectCaption(id);
     }
-    syncVideoPosition(tcIn);
+    seekToFrame(tcIn);
   };
 
   // 카드 클릭 (드래그 없이)
@@ -116,7 +101,7 @@ export function TimelinePanel() {
     } else {
       selectCaption(id);
     }
-    syncVideoPosition(tcIn);
+    seekToFrame(tcIn);
   };
 
   // 드래그 중

@@ -30,6 +30,7 @@ interface VideoState {
   clearInPoint: () => void;
   clearOutPoint: () => void;
   clearPoints: () => void;
+  seekToFrame: (frame: number) => void;
   seekFrames: (delta: number) => void;
   seekSeconds: (delta: number) => void;
   reset: () => void;
@@ -92,16 +93,29 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     set({ inPoint: null, outPoint: null });
   },
 
+  seekToFrame: (frame) => {
+    const { duration, fps } = get();
+    if (fps <= 0) return;
+
+    const clampedFrame = Math.max(0, Math.min(duration, frame));
+    set({ currentFrame: clampedFrame });
+
+    // 비디오 요소 직접 제어
+    const video = document.querySelector('video') as HTMLVideoElement;
+    if (video) {
+      video.currentTime = clampedFrame / fps;
+    }
+  },
+
   seekFrames: (delta) => {
-    const { currentFrame, duration } = get();
-    const newFrame = Math.max(0, Math.min(duration, currentFrame + delta));
-    set({ currentFrame: newFrame });
+    const { currentFrame } = get();
+    get().seekToFrame(currentFrame + delta);
   },
 
   seekSeconds: (delta) => {
-    const { fps } = get();
+    const { fps, currentFrame } = get();
     const frames = Math.round(delta * fps);
-    get().seekFrames(frames);
+    get().seekToFrame(currentFrame + frames);
   },
 
   reset: () => set(initialState),

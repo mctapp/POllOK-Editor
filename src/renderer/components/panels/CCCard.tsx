@@ -24,7 +24,7 @@ export function CCCard({ caption }: CCCardProps) {
     setEditingId,
     speakers,
   } = useCCStore();
-  const { fps, setCurrentFrame } = useVideoStore();
+  const { fps, seekToFrame } = useVideoStore();
 
   const isSelected = selectedIds.includes(caption.id);
   const isEditing = editingId === caption.id;
@@ -71,17 +71,9 @@ export function CCCard({ caption }: CCCardProps) {
 
   const typeLabel = CC_TYPE_OPTIONS.find((opt) => opt.value === caption.type)?.label ?? '대사';
 
-  const syncVideoPosition = (frame: number) => {
-    setCurrentFrame(frame);
-    const video = document.querySelector('video');
-    if (video) {
-      video.currentTime = frame / fps;
-    }
-  };
-
   const handleClick = (e: React.MouseEvent) => {
     selectCaption(caption.id, e.ctrlKey || e.metaKey);
-    syncVideoPosition(caption.tcIn);
+    seekToFrame(caption.tcIn);
   };
 
   const handleDoubleClick = () => {

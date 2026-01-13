@@ -23,7 +23,7 @@ export function ADCard({ description }: ADCardProps) {
     deleteDescription,
     setEditingId,
   } = useADStore();
-  const { fps, setCurrentFrame } = useVideoStore();
+  const { fps, seekToFrame } = useVideoStore();
 
   const isSelected = selectedIds.includes(description.id);
   const isEditing = editingId === description.id;
@@ -69,17 +69,9 @@ export function ADCard({ description }: ADCardProps) {
 
   const typeLabel = AD_TYPE_OPTIONS.find((opt) => opt.value === description.type)?.label ?? '기타';
 
-  const syncVideoPosition = (frame: number) => {
-    setCurrentFrame(frame);
-    const video = document.querySelector('video');
-    if (video) {
-      video.currentTime = frame / fps;
-    }
-  };
-
   const handleClick = (e: React.MouseEvent) => {
     selectDescription(description.id, e.ctrlKey || e.metaKey);
-    syncVideoPosition(description.tcIn);
+    seekToFrame(description.tcIn);
   };
 
   const handleDoubleClick = () => {
