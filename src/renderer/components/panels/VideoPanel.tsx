@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import {
   Play,
   Pause,
@@ -9,6 +9,7 @@ import {
   Volume2,
   VolumeX,
   Upload,
+  AlertTriangle,
 } from 'lucide-react';
 import { useVideoStore, useProjectStore } from '../../stores';
 import { PLAYBACK_RATES } from '../../../shared/constants';
@@ -16,6 +17,7 @@ import { PLAYBACK_RATES } from '../../../shared/constants';
 export function VideoPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const { project, setVideo } = useProjectStore();
   const {
@@ -65,6 +67,7 @@ export function VideoPanel() {
   const handleLoadVideo = async () => {
     const path = await window.api.file.selectVideo();
     if (path) {
+      setVideoError(null); // 에러 상태 초기화
       const fileUrl = window.api.utils.getFileUrl(path);
       setSource(fileUrl);
 
@@ -85,6 +88,37 @@ export function VideoPanel() {
       }
     }
   };
+
+  // 비디오 에러 처리
+  const handleVideoError = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const error = video.error;
+    let message = '영상을 재생할 수 없습니다.';
+
+    if (error) {
+      switch (error.code) {
+        case MediaError.MEDIA_ERR_ABORTED:
+          message = '영상 로드가 중단되었습니다.';
+          break;
+        case MediaError.MEDIA_ERR_NETWORK:
+          message = '네트워크 오류로 영상을 로드할 수 없습니다.';
+          break;
+        case MediaError.MEDIA_ERR_DECODE:
+          message = '영상 디코딩 오류가 발생했습니다.';
+          break;
+        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          message =
+            '지원하지 않는 영상 형식입니다.\n\nMP4 (H.264) 또는 WebM 형식으로 변환 후 다시 시도해 주세요.\n\nFFmpeg 변환 예시:\nffmpeg -i input.mov -c:v libx264 -c:a aac output.mp4';
+          break;
+      }
+    }
+
+    setVideoError(message);
+    setSource(null);
+    setIsPlaying(false);
+  }, [setSource, setIsPlaying]);
 
   // 메타데이터 로드
   const handleLoadedMetadata = useCallback(() => {
@@ -233,19 +267,36 @@ export function VideoPanel() {
             onLoadedMetadata={handleLoadedMetadata}
             onTimeUpdate={handleTimeUpdate}
             onEnded={handleEnded}
+            onError={handleVideoError}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
           />
         ) : (
-          <div className="text-center">
-            <Upload className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 text-sm mb-4">
-              {project ? '영상 파일을 불러오세요' : '프로젝트를 생성하거나 열어주세요'}
-            </p>
-            {project && (
-              <button onClick={handleLoadVideo} className="btn-primary text-sm">
-                영상 불러오기
-              </button>
+          <div className="text-center max-w-md px-4">
+            {videoError ? (
+              <>
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-yellow-400 text-sm mb-2 font-medium">영상 로드 실패</p>
+                <p className="text-gray-400 text-xs mb-4 whitespace-pre-line">{videoError}</p>
+                <button onClick={handleLoadVideo} className="btn-primary text-sm">
+                  다른 영상 선택
+                </button>
+              </>
+            ) : (
+              <>
+                <Upload className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 text-sm mb-2">
+                  {project ? '영상 파일을 불러오세요' : '프로젝트를 생성하거나 열어주세요'}
+                </p>
+                <p className="text-gray-600 text-xs mb-4">
+                  지원 형식: MP4 (H.264), WebM
+                </p>
+                {project && (
+                  <button onClick={handleLoadVideo} className="btn-primary text-sm">
+                    영상 불러오기
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
