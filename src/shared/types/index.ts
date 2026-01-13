@@ -37,6 +37,7 @@ export interface AudioDescription {
   type: ADType;
   voice: string;
   status: Status;
+  needsReview: boolean; // 검토 필요 체크
   createdAt: string;
   modifiedAt: string;
 }
@@ -55,6 +56,7 @@ export interface Caption {
   align: Alignment;
   type: CaptionType;
   style: CaptionStyle;
+  needsReview: boolean; // 검토 필요 체크
   createdAt: string;
   modifiedAt: string;
 }

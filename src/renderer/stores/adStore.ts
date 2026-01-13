@@ -37,6 +37,7 @@ export const useADStore = create<ADState>((set, get) => ({
       type: (desc.type as ADType) ?? 'scene',
       voice: desc.voice ?? 'default',
       status: (desc.status as Status) ?? 'draft',
+      needsReview: desc.needsReview ?? false,
       createdAt: now,
       modifiedAt: now,
     };

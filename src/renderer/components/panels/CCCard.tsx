@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Clock, User } from 'lucide-react';
+import { Pencil, Trash2, Clock, User, CheckSquare, Square } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
 import { useCCStore, useVideoStore } from '../../stores';
 import { CC_TYPE_OPTIONS } from '../../../shared/constants';
@@ -128,6 +128,11 @@ export function CCCard({ caption }: CCCardProps) {
     }
   };
 
+  const handleToggleReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateCaption(caption.id, { needsReview: !caption.needsReview });
+  };
+
   const getTypeIcon = () => {
     switch (caption.type) {
       case 'effect':
@@ -145,7 +150,9 @@ export function CCCard({ caption }: CCCardProps) {
     <div
       className={`p-3 rounded-lg border transition-colors cursor-pointer ${
         isSelected
-          ? 'bg-primary-900/30 border-primary-500'
+          ? 'bg-accent-green/20 border-accent-green'
+          : caption.needsReview
+          ? 'bg-dark-surface border-accent-yellow/50'
           : 'bg-dark-surface border-dark-border hover:border-gray-500'
       }`}
       onClick={handleClick}
@@ -153,45 +160,62 @@ export function CCCard({ caption }: CCCardProps) {
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
-        {isEditingTimecode ? (
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="text"
-              value={editTcIn}
-              onChange={(e) => setEditTcIn(e.target.value)}
-              onKeyDown={handleTimecodeKeyDown}
-              onBlur={handleTimecodesSave}
-              className="w-24 font-timecode text-xs bg-dark-bg border border-primary-500 rounded px-1 py-0.5 text-white focus:outline-none"
-              autoFocus
-            />
-            <span className="text-gray-600">→</span>
-            <input
-              type="text"
-              value={editTcOut}
-              onChange={(e) => setEditTcOut(e.target.value)}
-              onKeyDown={handleTimecodeKeyDown}
-              onBlur={handleTimecodesSave}
-              className="w-24 font-timecode text-xs bg-dark-bg border border-primary-500 rounded px-1 py-0.5 text-white focus:outline-none"
-            />
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTimecodeEdit();
-            }}
+        <div className="flex items-center gap-2">
+          {/* 검토 체크박스 */}
+          <button
+            onClick={handleToggleReview}
+            className={`transition-colors ${
+              caption.needsReview ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400'
+            }`}
+            title={caption.needsReview ? '검토 완료로 표시' : '검토 필요로 표시'}
           >
-            <span className="font-timecode text-xs text-gray-400">
-              {formatTimecode(caption.tcIn)}
-            </span>
-            <span className="text-gray-600">→</span>
-            <span className="font-timecode text-xs text-gray-400">
-              {formatTimecode(caption.tcOut)}
-            </span>
-          </div>
-        )}
-        <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">{typeLabel}</span>
+            {caption.needsReview ? (
+              <CheckSquare className="w-4 h-4" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+          </button>
+
+          {isEditingTimecode ? (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={editTcIn}
+                onChange={(e) => setEditTcIn(e.target.value)}
+                onKeyDown={handleTimecodeKeyDown}
+                onBlur={handleTimecodesSave}
+                className="w-24 font-timecode text-xs bg-dark-bg border border-accent-green rounded px-1 py-0.5 text-white focus:outline-none"
+                autoFocus
+              />
+              <span className="text-gray-600">→</span>
+              <input
+                type="text"
+                value={editTcOut}
+                onChange={(e) => setEditTcOut(e.target.value)}
+                onKeyDown={handleTimecodeKeyDown}
+                onBlur={handleTimecodesSave}
+                className="w-24 font-timecode text-xs bg-dark-bg border border-accent-green rounded px-1 py-0.5 text-white focus:outline-none"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTimecodeEdit();
+              }}
+            >
+              <span className="font-timecode text-xs text-gray-400">
+                {formatTimecode(caption.tcIn)}
+              </span>
+              <span className="text-gray-600">→</span>
+              <span className="font-timecode text-xs text-gray-400">
+                {formatTimecode(caption.tcOut)}
+              </span>
+            </div>
+          )}
+        </div>
+        <span className="text-xs px-2 py-0.5 bg-accent-green/30 rounded text-accent-green">{typeLabel}</span>
       </div>
 
       {/* 화자 */}
@@ -213,7 +237,7 @@ export function CCCard({ caption }: CCCardProps) {
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
           onClick={(e) => e.stopPropagation()}
-          className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-primary-500 focus:outline-none"
+          className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-accent-green focus:outline-none"
           rows={2}
           placeholder="자막 텍스트를 입력하세요..."
         />

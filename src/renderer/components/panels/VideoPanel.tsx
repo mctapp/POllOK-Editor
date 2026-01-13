@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -10,8 +10,10 @@ import {
   VolumeX,
   Upload,
   AlertTriangle,
+  X,
+  Subtitles,
 } from 'lucide-react';
-import { useVideoStore, useProjectStore } from '../../stores';
+import { useVideoStore, useProjectStore, useADStore, useCCStore, useUIStore } from '../../stores';
 import { PLAYBACK_RATES } from '../../../shared/constants';
 
 export function VideoPanel() {
@@ -21,6 +23,9 @@ export function VideoPanel() {
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
 
   const { project, setVideo } = useProjectStore();
+  const { descriptions } = useADStore();
+  const { captions } = useCCStore();
+  const { showOverlay, toggleOverlay, activeTab } = useUIStore();
   const {
     source,
     isPlaying,
@@ -44,6 +49,8 @@ export function VideoPanel() {
     toggleMute,
     setInPoint,
     setOutPoint,
+    clearInPoint,
+    clearOutPoint,
   } = useVideoStore();
 
   // 타임코드 포맷
@@ -289,23 +296,64 @@ export function VideoPanel() {
   const inPointPercent = inPoint !== null && duration > 0 ? (inPoint / duration) * 100 : null;
   const outPointPercent = outPoint !== null && duration > 0 ? (outPoint / duration) * 100 : null;
 
+  // 현재 프레임에 해당하는 AD/CC 텍스트
+  const currentOverlayText = useMemo(() => {
+    // 현재 프레임에 해당하는 AD 찾기
+    const currentAD = descriptions.find(
+      (desc) => currentFrame >= desc.tcIn && currentFrame <= desc.tcOut
+    );
+
+    // 현재 프레임에 해당하는 CC 찾기
+    const currentCC = captions.find(
+      (cap) => currentFrame >= cap.tcIn && currentFrame <= cap.tcOut
+    );
+
+    return { ad: currentAD?.text || null, cc: currentCC?.text || null };
+  }, [currentFrame, descriptions, captions]);
+
   return (
     <div className="h-full bg-black flex flex-col">
       {/* 비디오 영역 */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-black">
         {source ? (
-          <video
-            ref={videoRef}
-            src={source}
-            className="max-w-full max-h-full object-contain"
-            onClick={handleVideoClick}
-            onLoadedMetadata={handleLoadedMetadata}
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleEnded}
-            onError={handleVideoError}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
+          <>
+            <video
+              ref={videoRef}
+              src={source}
+              className="max-w-full max-h-full object-contain"
+              onClick={handleVideoClick}
+              onLoadedMetadata={handleLoadedMetadata}
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={handleEnded}
+              onError={handleVideoError}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
+
+            {/* 오버레이 텍스트 */}
+            {showOverlay && (
+              <div className="absolute inset-x-0 bottom-16 flex flex-col items-center gap-2 pointer-events-none">
+                {/* AD 오버레이 */}
+                {currentOverlayText.ad && (
+                  <div className="max-w-[80%] px-4 py-2 bg-brand-brown/80 rounded-lg">
+                    <p className="text-white text-sm text-center font-medium">
+                      <span className="text-accent-yellow text-xs mr-2">[AD]</span>
+                      {currentOverlayText.ad}
+                    </p>
+                  </div>
+                )}
+
+                {/* CC 오버레이 */}
+                {currentOverlayText.cc && (
+                  <div className="max-w-[80%] px-4 py-2 bg-black/80 rounded-lg">
+                    <p className="text-white text-sm text-center">
+                      {currentOverlayText.cc}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center max-w-md px-4">
             {videoError ? (
@@ -340,13 +388,13 @@ export function VideoPanel() {
       {/* 프로그레스 바 */}
       <div
         ref={progressRef}
-        className="h-2 bg-dark-surface cursor-pointer relative select-none"
+        className="h-3 bg-dark-bg cursor-pointer relative select-none group"
         onMouseDown={handleProgressMouseDown}
       >
         {/* In/Out 포인트 영역 표시 */}
         {inPointPercent !== null && outPointPercent !== null && (
           <div
-            className="absolute top-0 bottom-0 bg-primary-900/50"
+            className="absolute top-0 bottom-0 bg-accent-yellow/30 pointer-events-none"
             style={{
               left: `${inPointPercent}%`,
               width: `${outPointPercent - inPointPercent}%`,
@@ -356,14 +404,20 @@ export function VideoPanel() {
 
         {/* 진행 바 */}
         <div
-          className="h-full bg-primary-500 transition-all duration-75"
+          className="h-full bg-brand-brown pointer-events-none"
           style={{ width: `${progress}%` }}
+        />
+
+        {/* 드래그 핸들 (hover 시 표시) */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-accent-yellow rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ left: `calc(${progress}% - 6px)` }}
         />
 
         {/* In 포인트 마커 */}
         {inPointPercent !== null && (
           <div
-            className="absolute top-0 bottom-0 w-1 bg-yellow-500"
+            className="absolute top-0 bottom-0 w-1 bg-accent-yellow pointer-events-none"
             style={{ left: `${inPointPercent}%` }}
           />
         )}
@@ -371,7 +425,7 @@ export function VideoPanel() {
         {/* Out 포인트 마커 */}
         {outPointPercent !== null && (
           <div
-            className="absolute top-0 bottom-0 w-1 bg-yellow-500"
+            className="absolute top-0 bottom-0 w-1 bg-accent-yellow pointer-events-none"
             style={{ left: `${outPointPercent}%` }}
           />
         )}
@@ -404,7 +458,7 @@ export function VideoPanel() {
           {/* 재생/일시정지 */}
           <button
             onClick={togglePlay}
-            className="w-12 h-12 rounded-full bg-primary-600 hover:bg-primary-500 text-white flex items-center justify-center transition-colors disabled:opacity-50 disabled:hover:bg-primary-600"
+            className="w-12 h-12 rounded-full bg-brand-brown hover:bg-brand-brown/80 text-white flex items-center justify-center transition-colors disabled:opacity-50 disabled:hover:bg-brand-brown"
             title={isPlaying ? '일시정지 (Space)' : '재생 (Space)'}
             disabled={!source}
           >
@@ -445,30 +499,52 @@ export function VideoPanel() {
           <div className="flex items-center gap-3">
             {/* In/Out 버튼 */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={setInPoint}
-                className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                  inPoint !== null
-                    ? 'bg-yellow-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                }`}
-                title="In 포인트 설정 (I)"
-                disabled={!source}
-              >
-                I
-              </button>
-              <button
-                onClick={setOutPoint}
-                className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                  outPoint !== null
-                    ? 'bg-yellow-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                }`}
-                title="Out 포인트 설정 (O)"
-                disabled={!source}
-              >
-                O
-              </button>
+              <div className="flex items-center">
+                <button
+                  onClick={setInPoint}
+                  className={`px-2 py-0.5 text-xs rounded-l transition-colors ${
+                    inPoint !== null
+                      ? 'bg-accent-yellow text-brand-black'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                  title="In 포인트 설정 (I)"
+                  disabled={!source}
+                >
+                  I
+                </button>
+                {inPoint !== null && (
+                  <button
+                    onClick={clearInPoint}
+                    className="px-1 py-0.5 text-xs bg-accent-yellow/80 hover:bg-red-500 text-brand-black hover:text-white rounded-r transition-colors"
+                    title="In 포인트 해제"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center">
+                <button
+                  onClick={setOutPoint}
+                  className={`px-2 py-0.5 text-xs rounded-l transition-colors ${
+                    outPoint !== null
+                      ? 'bg-accent-yellow text-brand-black'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                  title="Out 포인트 설정 (O)"
+                  disabled={!source}
+                >
+                  O
+                </button>
+                {outPoint !== null && (
+                  <button
+                    onClick={clearOutPoint}
+                    className="px-1 py-0.5 text-xs bg-accent-yellow/80 hover:bg-red-500 text-brand-black hover:text-white rounded-r transition-colors"
+                    title="Out 포인트 해제"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="w-px h-4 bg-gray-600" />
@@ -492,8 +568,23 @@ export function VideoPanel() {
             </div>
           </div>
 
-          {/* 볼륨 */}
-          <div className="flex items-center gap-2 w-32 justify-end">
+          {/* 볼륨 + 오버레이 토글 */}
+          <div className="flex items-center gap-2 w-40 justify-end">
+            {/* 오버레이 토글 */}
+            <button
+              onClick={toggleOverlay}
+              className={`p-1 rounded transition-colors ${
+                showOverlay
+                  ? 'text-accent-yellow'
+                  : 'text-gray-500 hover:text-white'
+              }`}
+              title={showOverlay ? '자막 오버레이 끄기' : '자막 오버레이 켜기'}
+            >
+              <Subtitles className="w-4 h-4" />
+            </button>
+
+            <div className="w-px h-4 bg-gray-600" />
+
             <button
               onClick={toggleMute}
               className="text-gray-400 hover:text-white transition-colors"
@@ -512,7 +603,7 @@ export function VideoPanel() {
               step="0.1"
               value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+              className="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
               disabled={!source}
             />
           </div>
