@@ -2,93 +2,49 @@ import { BaseAnalyzer } from './BaseAnalyzer';
 import type { AnalyzerOptions, AnalyzerResult } from '../types';
 
 /**
- * 고속 재생 웨이브폼 분석기
+ * 고속 웨이브폼 분석기 (백그라운드 처리)
  *
- * 기존 비디오 요소를 사용하여 구간별로 시크하면서
- * Web Audio API의 AnalyserNode로 오디오 볼륨을 샘플링합니다.
- *
- * 장점:
- * - 실제 오디오 볼륨 반영
- * - 메모리 효율적
- * - 무음 구간 정확히 식별
- *
- * 단점:
- * - 분석에 시간 소요
+ * 메인 비디오에 영향을 주지 않고 백그라운드에서 분석합니다.
+ * 청크 단위로 처리하여 UI 응답성을 유지합니다.
  */
 export class HighSpeedAnalyzer extends BaseAnalyzer {
   readonly name = 'HighSpeedAnalyzer';
-  readonly description = '실제 오디오 분석 (시크 기반)';
+  readonly description = '백그라운드 오디오 분석';
 
-  private audioContext: AudioContext | null = null;
-  private analyserNode: AnalyserNode | null = null;
-  private sourceNode: MediaElementAudioSourceNode | null = null;
-  private gainNode: GainNode | null = null;
-  private video: HTMLVideoElement | null = null;
-  private originalVolume = 1;
-  private originalCurrentTime = 0;
-  private wasPlaying = false;
+  private abortController: AbortController | null = null;
 
   async analyze(source: string, options: AnalyzerOptions): Promise<AnalyzerResult> {
     this.initOptions(options);
     const { samples } = options;
 
+    this.abortController = new AbortController();
+
     try {
       this.setStatus('initializing');
-      this.reportProgress(0, '오디오 분석 준비 중...');
+      this.reportProgress(0, '비디오 정보 확인 중...');
 
-      // 기존 비디오 요소 찾기
-      this.video = document.querySelector('video');
-      if (!this.video) {
+      // 메인 비디오에서 duration 가져오기
+      const mainVideo = document.querySelector('video');
+      if (!mainVideo) {
         throw new Error('비디오 요소를 찾을 수 없습니다');
       }
 
-      // 비디오 메타데이터 로드 대기
-      const duration = await this.waitForVideoDuration(this.video);
-      if (!duration || duration <= 0) {
+      // duration 대기
+      const duration = await this.waitForDuration(mainVideo);
+      if (!duration) {
         throw new Error('비디오 정보를 가져올 수 없습니다');
       }
 
-      // 현재 상태 저장
-      this.originalVolume = this.video.volume;
-      this.originalCurrentTime = this.video.currentTime;
-      this.wasPlaying = !this.video.paused;
-
-      // 비디오 일시정지 및 음소거
-      this.video.pause();
-      this.video.volume = 0;
-
-      if (this.isCancelled()) {
-        this.restoreVideoState();
-        return { success: false, error: '취소됨' };
-      }
-
-      // Web Audio API 설정
-      this.audioContext = new AudioContext();
-      this.analyserNode = this.audioContext.createAnalyser();
-      this.analyserNode.fftSize = 256;
-      this.analyserNode.smoothingTimeConstant = 0.1;
-
-      // GainNode로 출력 음소거 (분석은 가능하게)
-      this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 0;
-
-      this.sourceNode = this.audioContext.createMediaElementSource(this.video);
-      this.sourceNode.connect(this.analyserNode);
-      this.analyserNode.connect(this.gainNode);
-      this.gainNode.connect(this.audioContext.destination);
-
       this.setStatus('analyzing');
-      this.reportProgress(5, '오디오 분석 중...');
+      this.reportProgress(5, '오디오 분석 준비 중...');
 
-      // 분석 시작
-      const peaks = await this.sampleBySeek(duration, samples);
+      // 숨겨진 오디오 요소로 분석 (비디오 재생에 영향 없음)
+      const peaks = await this.analyzeWithHiddenAudio(source, duration, samples);
 
       if (this.isCancelled()) {
-        this.cleanup();
         return { success: false, error: '취소됨' };
       }
 
-      this.cleanup();
       this.setStatus('complete');
       this.reportProgress(100, '완료');
 
@@ -97,147 +53,157 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
         data: { peaks, duration },
       };
     } catch (error) {
-      this.cleanup();
       this.setStatus('error');
       const message = error instanceof Error ? error.message : '알 수 없는 오류';
+      console.error('Waveform analysis error:', error);
       return { success: false, error: message };
     }
   }
 
   /**
-   * 비디오 duration 대기
+   * duration 대기
    */
-  private async waitForVideoDuration(video: HTMLVideoElement, maxRetries = 20): Promise<number> {
-    for (let i = 0; i < maxRetries; i++) {
-      if (this.isCancelled()) {
-        return 0;
-      }
+  private async waitForDuration(video: HTMLVideoElement): Promise<number> {
+    for (let i = 0; i < 30; i++) {
+      if (this.isCancelled()) return 0;
 
-      // readyState >= 1 (HAVE_METADATA) 이고 duration이 유효한 경우
-      if (video.readyState >= 1 && video.duration && isFinite(video.duration) && video.duration > 0) {
+      if (video.readyState >= 1 && video.duration && isFinite(video.duration)) {
         return video.duration;
       }
 
-      // loadedmetadata 이벤트 대기
-      await new Promise<void>((resolve) => {
-        const onLoaded = () => {
-          video.removeEventListener('loadedmetadata', onLoaded);
-          resolve();
-        };
-        video.addEventListener('loadedmetadata', onLoaded);
-        // 타임아웃 (이미 로드된 경우)
-        setTimeout(resolve, 500);
-      });
+      await this.yieldToMain(300);
     }
-
-    return video.duration || 0;
+    return 0;
   }
 
   /**
-   * 시크 기반 오디오 샘플링
-   * 비디오를 각 위치로 시크하고 짧게 재생하여 오디오 레벨 측정
+   * 숨겨진 오디오 요소로 분석
    */
-  private async sampleBySeek(duration: number, targetSamples: number): Promise<number[]> {
-    if (!this.video || !this.analyserNode || !this.audioContext) {
-      throw new Error('분석기가 초기화되지 않았습니다');
-    }
+  private async analyzeWithHiddenAudio(
+    source: string,
+    duration: number,
+    targetSamples: number
+  ): Promise<number[]> {
+    // 숨겨진 오디오 요소 생성
+    const audio = document.createElement('audio');
+    audio.src = source;
+    audio.preload = 'auto';
+    audio.volume = 0;
+    audio.style.display = 'none';
+    document.body.appendChild(audio);
 
-    const peaks: number[] = [];
-    const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
-    const timeStep = duration / targetSamples;
+    try {
+      // 오디오 로드 대기
+      await this.waitForAudioReady(audio);
 
-    let lastProgress = 0;
-
-    for (let i = 0; i < targetSamples && !this.isCancelled(); i++) {
-      const targetTime = i * timeStep;
-
-      // 해당 위치로 시크
-      this.video.currentTime = targetTime;
-
-      // seeked 이벤트 대기
-      await new Promise<void>((resolve) => {
-        const onSeeked = () => {
-          this.video?.removeEventListener('seeked', onSeeked);
-          resolve();
-        };
-        this.video?.addEventListener('seeked', onSeeked);
-        // 타임아웃 (이미 해당 위치인 경우)
-        setTimeout(resolve, 100);
-      });
-
-      // 짧게 재생하여 오디오 버퍼 채우기
-      await this.video.play();
-      await this.sleep(50);
-      this.video.pause();
-
-      // 오디오 레벨 측정
-      this.analyserNode.getByteFrequencyData(dataArray);
-
-      // RMS 계산
-      let sum = 0;
-      for (let j = 0; j < dataArray.length; j++) {
-        sum += dataArray[j] * dataArray[j];
+      if (this.isCancelled()) {
+        return [];
       }
-      const rms = Math.sqrt(sum / dataArray.length);
 
-      // 0 ~ 1 범위로 정규화 (더 민감하게)
-      const normalizedValue = Math.min(1, rms / 100);
-      peaks.push(normalizedValue);
+      // Web Audio API 설정
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.3;
 
-      // 진행률 업데이트
-      const progress = Math.floor((i / targetSamples) * 95) + 5;
-      if (progress !== lastProgress && progress % 2 === 0) {
-        lastProgress = progress;
-        const remaining = targetSamples - i;
-        const estimatedSeconds = Math.ceil(remaining * 0.15);
-        this.reportProgress(progress, `오디오 분석 중... (약 ${estimatedSeconds}초 남음)`);
+      const sourceNode = audioContext.createMediaElementSource(audio);
+      sourceNode.connect(analyser);
+      // destination에 연결하지 않아 소리 안 남
+
+      const peaks: number[] = [];
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const timeStep = duration / targetSamples;
+      const chunkSize = 10; // 한 번에 처리할 샘플 수
+
+      this.reportProgress(10, '오디오 분석 중...');
+
+      for (let i = 0; i < targetSamples; i += chunkSize) {
+        if (this.isCancelled()) {
+          break;
+        }
+
+        // 청크 처리
+        const chunkEnd = Math.min(i + chunkSize, targetSamples);
+        for (let j = i; j < chunkEnd; j++) {
+          const targetTime = j * timeStep;
+
+          // 해당 위치로 시크
+          audio.currentTime = targetTime;
+
+          // 짧은 대기 (버퍼 채우기)
+          await this.yieldToMain(10);
+
+          // 오디오 레벨 측정
+          analyser.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+          for (let k = 0; k < dataArray.length; k++) {
+            sum += dataArray[k] * dataArray[k];
+          }
+          const rms = Math.sqrt(sum / dataArray.length);
+          peaks.push(Math.min(1, rms / 100));
+        }
+
+        // UI 업데이트 및 메인 스레드 양보
+        const progress = Math.floor((chunkEnd / targetSamples) * 90) + 10;
+        const remaining = Math.ceil((targetSamples - chunkEnd) * 0.02);
+        this.reportProgress(progress, `오디오 분석 중... (약 ${remaining}초 남음)`);
+
+        await this.yieldToMain(0);
       }
-    }
 
-    return peaks;
+      // 정리
+      sourceNode.disconnect();
+      await audioContext.close();
+
+      return peaks;
+    } finally {
+      // 오디오 요소 제거
+      audio.pause();
+      audio.src = '';
+      audio.remove();
+    }
   }
 
   /**
-   * 비디오 상태 복원
+   * 오디오 로드 대기
    */
-  private restoreVideoState(): void {
-    if (this.video) {
-      this.video.currentTime = this.originalCurrentTime;
-      this.video.volume = this.originalVolume;
-      if (this.wasPlaying) {
-        this.video.play();
+  private async waitForAudioReady(audio: HTMLAudioElement): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('오디오 로드 시간 초과'));
+      }, 30000);
+
+      const onCanPlay = () => {
+        clearTimeout(timeout);
+        audio.removeEventListener('canplaythrough', onCanPlay);
+        audio.removeEventListener('error', onError);
+        resolve();
+      };
+
+      const onError = () => {
+        clearTimeout(timeout);
+        audio.removeEventListener('canplaythrough', onCanPlay);
+        audio.removeEventListener('error', onError);
+        reject(new Error('오디오 로드 실패'));
+      };
+
+      audio.addEventListener('canplaythrough', onCanPlay);
+      audio.addEventListener('error', onError);
+
+      // 이미 로드된 경우
+      if (audio.readyState >= 3) {
+        clearTimeout(timeout);
+        resolve();
       }
-    }
+    });
   }
 
   /**
-   * 리소스 정리
+   * 메인 스레드에 양보 (UI 응답성 유지)
    */
-  private cleanup(): void {
-    // 오디오 노드 연결 해제
-    if (this.sourceNode) {
-      this.sourceNode.disconnect();
-      this.sourceNode = null;
-    }
-
-    if (this.analyserNode) {
-      this.analyserNode.disconnect();
-      this.analyserNode = null;
-    }
-
-    if (this.gainNode) {
-      this.gainNode.disconnect();
-      this.gainNode = null;
-    }
-
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
-
-    // 비디오 상태 복원
-    this.restoreVideoState();
-    this.video = null;
+  private yieldToMain(ms: number = 0): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -245,14 +211,14 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
    */
   override cancel(): void {
     super.cancel();
-    this.cleanup();
+    this.abortController?.abort();
   }
 
   /**
    * 리소스 정리
    */
   override dispose(): void {
-    this.cleanup();
+    this.abortController?.abort();
     super.dispose();
   }
 }
