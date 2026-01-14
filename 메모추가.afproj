@@ -1,0 +1,110 @@
+{
+  "project": {
+    "version": "1.0",
+    "id": "2ab41955-d80f-40a8-83c9-04a6780122c6",
+    "title": "메모추가",
+    "createdAt": "2026-01-14T13:26:40.801Z",
+    "modifiedAt": "2026-01-14T16:59:59.530Z",
+    "video": {
+      "path": "/Users/welive/Sites/POllOK-Editor/screener-converted.mp4",
+      "filename": "screener-converted.mp4",
+      "hash": "",
+      "duration": 1578.965,
+      "durationFrames": 37895,
+      "fps": 24,
+      "width": 1280,
+      "height": 720,
+      "resolution": "1280x720"
+    },
+    "settings": {
+      "timecodeFormat": "smpte",
+      "defaultAdVoice": "default",
+      "ccMaxCharsPerLine": 42,
+      "ccMaxLines": 2
+    }
+  },
+  "descriptions": [
+    {
+      "id": "35001671-1bb1-444f-8fc8-3048b67542df",
+      "tcIn": 164,
+      "tcOut": 240,
+      "text": "아무래도 오늘이 마지막 날인 것 같아",
+      "type": "scene",
+      "voice": "default",
+      "status": "draft",
+      "needsReview": false,
+      "createdAt": "2026-01-14T13:27:10.034Z",
+      "modifiedAt": "2026-01-14T16:33:50.374Z",
+      "audioFile": "/Users/welive/Documents/AccessON/recordings/35001671-1bb1-444f-8fc8-3048b67542df_2026-01-14T13-33-10-906Z.webm"
+    },
+    {
+      "id": "3b43138b-d1aa-40a2-b2e8-8e964ad2db84",
+      "tcIn": 7905,
+      "tcOut": 7977,
+      "text": "며칠 전부터",
+      "type": "scene",
+      "voice": "",
+      "status": "draft",
+      "needsReview": false,
+      "createdAt": "2026-01-14T13:29:14.816Z",
+      "modifiedAt": "2026-01-14T16:31:11.958Z"
+    },
+    {
+      "id": "8c9d9b98-81df-4788-9be8-1e1e3d93fa9e",
+      "tcIn": 8640,
+      "tcOut": 9107,
+      "text": "밥맛도 없고",
+      "type": "scene",
+      "voice": "",
+      "status": "draft",
+      "needsReview": false,
+      "createdAt": "2026-01-14T13:29:22.756Z",
+      "modifiedAt": "2026-01-14T16:26:17.754Z"
+    },
+    {
+      "id": "1c3d9eea-79e5-419d-8b6f-55cbfe4d0452",
+      "tcIn": 10240,
+      "tcOut": 10501,
+      "text": "방. 할머니와 저승사자가 고스톱판 앞에 마주 앉아 있다.",
+      "type": "scene",
+      "voice": "",
+      "status": "draft",
+      "needsReview": false,
+      "createdAt": "2026-01-14T16:22:25.869Z",
+      "modifiedAt": "2026-01-14T16:23:53.201Z",
+      "audioFile": "/Users/welive/Sites/POllOK-Editor/메모추가/recordings/1c3d9eea-79e5-419d-8b6f-55cbfe4d0452_2026-01-14T16-23-53-195Z.webm"
+    }
+  ],
+  "captions": [
+    {
+      "id": "db7561a8-1922-416f-bb2f-ef26cdfb88c8",
+      "tcIn": 7905,
+      "tcOut": 7977,
+      "text": "",
+      "speakerId": null,
+      "position": "bottom",
+      "align": "center",
+      "type": "dialogue",
+      "style": {
+        "color": "#FFFFFF",
+        "background": "#000000CC"
+      },
+      "needsReview": false,
+      "createdAt": "2026-01-14T13:35:38.179Z",
+      "modifiedAt": "2026-01-14T13:35:38.962Z"
+    }
+  ],
+  "speakers": [],
+  "memos": [
+    {
+      "id": "9a95c18a-629d-4535-a3e7-46a3ba2b29b3",
+      "title": "표현에 대한 고민",
+      "content": "가나다라는 표현보다 마바사라는 표현이 더 어울리지 않을까?",
+      "completed": false,
+      "cardId": "35001671-1bb1-444f-8fc8-3048b67542df",
+      "cardType": "ad",
+      "createdAt": "2026-01-14T13:28:13.502Z",
+      "modifiedAt": "2026-01-14T13:28:13.502Z"
+    }
+  ]
+}

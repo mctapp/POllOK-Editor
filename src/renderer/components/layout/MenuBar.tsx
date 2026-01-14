@@ -16,7 +16,7 @@ interface MenuItem {
 export function MenuBar() {
   const [showPreferences, setShowPreferences] = useState(false);
   const { project, createProject, saveProject, closeProject } = useProjectStore();
-  const { setOpenDialog, setActiveTab, isTimelineCollapsed, toggleTimeline } = useUIStore();
+  const { setOpenDialog, setActiveTab, isTimelineCollapsed, toggleTimeline, showFeedbackPanel, toggleFeedbackPanel } = useUIStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
   const { fps } = useVideoStore();
@@ -185,6 +185,12 @@ export function MenuBar() {
       { label: 'AD 패널', shortcut: `${modKey}+1`, action: () => setActiveTab('ad') },
       { label: 'CC 패널', shortcut: `${modKey}+2`, action: () => setActiveTab('cc') },
       { label: '메모 패널', shortcut: `${modKey}+3`, action: () => setActiveTab('memo') },
+      { separator: true },
+      {
+        label: showFeedbackPanel ? '● 피드백 패널' : '◯ 피드백 패널',
+        shortcut: `${modKey}+4`,
+        action: toggleFeedbackPanel,
+      },
       { separator: true },
       {
         label: '작업화면 설정',
