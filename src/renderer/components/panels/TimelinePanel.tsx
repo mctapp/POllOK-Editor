@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { useVideoStore, useADStore, useCCStore, useProjectStore, useUIStore } from '../../stores';
 import { useAudioWaveform } from '../../hooks';
-import { Waveform, WaveformLoading, WaveformEmpty } from '../Waveform';
+import { Waveform, WaveformLoading, WaveformEmpty, WaveformError } from '../Waveform';
 
 export function TimelinePanel() {
   const { project } = useProjectStore();
@@ -12,8 +12,8 @@ export function TimelinePanel() {
   const { timelineZoom, zoomIn, zoomOut } = useUIStore();
 
   // 오디오 웨이브폼 분석
-  const { waveformData, isLoading: isWaveformLoading } = useAudioWaveform(source, {
-    samples: 2000,
+  const { waveformData, isLoading: isWaveformLoading, status: waveformStatus, statusMessage, progress: waveformProgress } = useAudioWaveform(source, {
+    samples: 1000,
   });
 
   // 트랙 컨테이너 너비 추적
@@ -311,9 +311,13 @@ export function TimelinePanel() {
 
             {/* 오디오 파형 영역 */}
             <div className="h-1/3 relative overflow-hidden">
-              {isWaveformLoading ? (
-                <WaveformLoading width={trackWidth} height={60} />
-              ) : waveformData && waveformData.peaks.length > 0 ? (
+              {waveformStatus === 'idle' && !source ? (
+                <WaveformEmpty height={60} message="영상을 불러오면 오디오 파형이 표시됩니다" />
+              ) : waveformStatus === 'waiting' || waveformStatus === 'analyzing' ? (
+                <WaveformLoading height={60} message={statusMessage} progress={waveformProgress} />
+              ) : waveformStatus === 'error' ? (
+                <WaveformError height={60} message={statusMessage} />
+              ) : waveformData && waveformData.peaks.length > 0 && trackWidth > 0 ? (
                 <Waveform
                   peaks={waveformData.peaks}
                   width={trackWidth}
@@ -323,7 +327,7 @@ export function TimelinePanel() {
                   progress={duration > 0 ? currentFrame / duration : 0}
                 />
               ) : (
-                <WaveformEmpty width={trackWidth} height={60} />
+                <WaveformEmpty height={60} message={source ? '파형 생성 대기 중...' : '영상을 불러오면 오디오 파형이 표시됩니다'} />
               )}
             </div>
 
