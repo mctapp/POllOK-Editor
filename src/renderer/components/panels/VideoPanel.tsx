@@ -191,12 +191,17 @@ export function VideoPanel() {
     const video = videoRef.current;
     if (!video || !source || fps <= 0 || duration <= 0) return;
 
-    // 재생 중이 아니고, isSeeking 중일 때만 비디오 위치 동기화
-    if (!isPlaying && isSeeking) {
+    // isSeeking 중일 때 비디오 위치 동기화 (재생 중이 아닐 때)
+    if (isSeeking && !isPlaying) {
       const targetTime = currentFrame / fps;
       const clampedTime = Math.min(targetTime, video.duration - 0.1);
-      console.log('Sync video to frame:', currentFrame, 'time:', clampedTime);
+      console.log('Sync effect: seeking to', clampedTime, 'current:', video.currentTime);
+
+      // 비디오 seek 시도
       video.currentTime = clampedTime;
+
+      // 즉시 확인
+      console.log('After set, video.currentTime =', video.currentTime);
     }
   }, [currentFrame, isSeeking, isPlaying, fps, duration, source]);
 
@@ -220,7 +225,10 @@ export function VideoPanel() {
 
         // 현재 위치와 다르면 seek 후 play
         if (Math.abs(video.currentTime - clampedTime) > 0.05) {
+          console.log('Setting video.currentTime to', clampedTime);
           video.currentTime = clampedTime;
+          console.log('After set, video.currentTime =', video.currentTime);
+
           // seeked 이벤트 대기 후 재생
           const onSeeked = () => {
             console.log('Seeked complete, now playing from', video.currentTime);
