@@ -13,6 +13,39 @@ export interface ProjectFileData {
   memos: Memo[];
 }
 
+// 최근 프로젝트 정보
+export interface RecentProject {
+  path: string;
+  title: string;
+  lastOpened: string;
+}
+
+const RECENT_PROJECTS_KEY = 'accesson_recent_projects';
+const MAX_RECENT_PROJECTS = 10;
+
+// 최근 프로젝트 목록 관리
+export function getRecentProjects(): RecentProject[] {
+  try {
+    const stored = localStorage.getItem(RECENT_PROJECTS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addRecentProject(path: string, title: string): void {
+  const recents = getRecentProjects().filter((p) => p.path !== path);
+  recents.unshift({
+    path,
+    title,
+    lastOpened: new Date().toISOString(),
+  });
+  localStorage.setItem(
+    RECENT_PROJECTS_KEY,
+    JSON.stringify(recents.slice(0, MAX_RECENT_PROJECTS))
+  );
+}
+
 interface ProjectState {
   // 상태
   project: Project | null;
@@ -36,7 +69,8 @@ const getOtherStores = async () => {
   const { useADStore } = await import('./adStore');
   const { useCCStore } = await import('./ccStore');
   const { useMemoStore } = await import('./memoStore');
-  return { useADStore, useCCStore, useMemoStore };
+  const { useVideoStore } = await import('./videoStore');
+  return { useADStore, useCCStore, useMemoStore, useVideoStore };
 };
 
 export const useProjectStore = create<ProjectState>()(
@@ -79,7 +113,7 @@ export const useProjectStore = create<ProjectState>()(
         });
 
         // 다른 스토어 데이터 복원
-        const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+        const { useADStore, useCCStore, useMemoStore, useVideoStore } = await getOtherStores();
 
         if (fileData.descriptions) {
           useADStore.getState().setDescriptions(fileData.descriptions);
@@ -93,6 +127,21 @@ export const useProjectStore = create<ProjectState>()(
         if (fileData.memos) {
           useMemoStore.getState().setMemos(fileData.memos);
         }
+
+        // 비디오 로드 (프로젝트에 비디오 정보가 있는 경우)
+        if (fileData.project.video?.path) {
+          const videoUrl = window.api.utils.getFileUrl(fileData.project.video.path);
+          useVideoStore.getState().setSource(videoUrl);
+          useVideoStore.getState().setFps(fileData.project.video.fps);
+          useVideoStore.getState().setDuration(fileData.project.video.durationFrames);
+          useVideoStore.getState().setResolution(
+            fileData.project.video.width,
+            fileData.project.video.height
+          );
+        }
+
+        // 최근 프로젝트에 추가
+        addRecentProject(path, fileData.project.title);
       } catch (error) {
         console.error('Failed to open project:', error);
         throw error;
@@ -157,6 +206,9 @@ export const useProjectStore = create<ProjectState>()(
           isDirty: false,
           lastSaved: new Date(),
         });
+
+        // 최근 프로젝트에 추가
+        addRecentProject(savedPath, updatedProject.title);
       }
     },
 
@@ -208,15 +260,19 @@ export const useProjectStore = create<ProjectState>()(
           isDirty: false,
           lastSaved: new Date(),
         });
+
+        // 최근 프로젝트에 추가
+        addRecentProject(savedPath, updatedProject.title);
       }
     },
 
     closeProject: async () => {
       // 다른 스토어 초기화
-      const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+      const { useADStore, useCCStore, useMemoStore, useVideoStore } = await getOtherStores();
       useADStore.getState().reset();
       useCCStore.getState().reset();
       useMemoStore.getState().reset();
+      useVideoStore.getState().reset();
 
       set({
         project: null,

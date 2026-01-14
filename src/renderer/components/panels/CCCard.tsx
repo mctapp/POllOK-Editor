@@ -9,9 +9,6 @@ import {
   History,
   RotateCcw,
   StickyNote,
-  ChevronDown,
-  ChevronRight,
-  Check,
 } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
 import { useCCStore, useVideoStore, useMemoStore, useUIStore } from '../../stores';
@@ -32,7 +29,7 @@ export function CCCard({ caption }: CCCardProps) {
   const [isEditingTimecode, setIsEditingTimecode] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const [showMemoDialog, setShowMemoDialog] = useState(false);
-  const [showMemos, setShowMemos] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const { getMemosForCard } = useMemoStore();
   const { setActiveTab } = useUIStore();
@@ -67,6 +64,7 @@ export function CCCard({ caption }: CCCardProps) {
   const isSelected = selectedIds.includes(caption.id);
   const isEditing = editingId === caption.id;
   const speaker = speakers.find((s) => s.id === caption.speakerId);
+  const isActive = isSelected || isEditing || isHovered;
 
   // 편집 모드 진입 시 textarea에 포커스
   useEffect(() => {
@@ -195,15 +193,14 @@ export function CCCard({ caption }: CCCardProps) {
     updateCaption(caption.id, { needsReview: !caption.needsReview });
   };
 
-  const handleOpenMemo = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowMemoDialog(true);
-  };
-
-  // 메모 클릭 시 메모 탭으로 이동
+  // 메모 아이콘 클릭 - 메모탭으로 이동
   const handleMemoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveTab('memo');
+    if (memoCount > 0) {
+      setActiveTab('memo');
+    } else {
+      setShowMemoDialog(true);
+    }
   };
 
   const getTypeIcon = () => {
@@ -228,7 +225,7 @@ export function CCCard({ caption }: CCCardProps) {
         cardType="cc"
       />
       <div
-        className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+        className={`group p-3 rounded-lg border transition-colors cursor-pointer ${
           isSelected
             ? 'bg-accent-green/20 border-accent-green'
             : caption.needsReview
@@ -237,9 +234,15 @@ export function CCCard({ caption }: CCCardProps) {
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-2">
+        {/* 헤더 - 활성 상태일 때만 표시 */}
+        <div
+          className={`flex items-center justify-between mb-2 transition-opacity ${
+            isActive ? 'opacity-100' : 'opacity-0 h-0 mb-0 overflow-hidden'
+          }`}
+        >
           <div className="flex items-center gap-2">
             {/* 검토 체크박스 */}
             <button
@@ -304,16 +307,6 @@ export function CCCard({ caption }: CCCardProps) {
           </span>
         </div>
 
-        {/* 화자 */}
-        {speaker && (
-          <div className="flex items-center gap-1.5 mb-2">
-            <User className="w-3 h-3" style={{ color: speaker.color }} />
-            <span className="text-xs font-medium" style={{ color: speaker.color }}>
-              {speaker.name}
-            </span>
-          </div>
-        )}
-
         {/* 내용 */}
         {isEditing ? (
           <textarea
@@ -328,69 +321,43 @@ export function CCCard({ caption }: CCCardProps) {
             placeholder="자막 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
           />
         ) : (
-          <p className="text-sm text-gray-200 mb-2 whitespace-pre-wrap">
-            {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
-            {caption.type !== 'dialogue' && caption.text ? (
-              <span className="text-gray-400">[{caption.text}]</span>
-            ) : (
-              caption.text || (
-                <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
-              )
-            )}
-          </p>
-        )}
-
-        {/* 메모 섹션 */}
-        {memoCount > 0 && (
-          <div className="mb-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMemos(!showMemos);
-              }}
-              className="flex items-center gap-1 text-xs text-accent-yellow hover:text-accent-yellow/80"
-            >
-              {showMemos ? (
-                <ChevronDown className="w-3 h-3" />
-              ) : (
-                <ChevronRight className="w-3 h-3" />
+          <div className="flex items-start gap-2">
+            {/* 상태 아이콘들 - 비활성 상태에서도 표시 */}
+            <div className="flex items-center gap-1 flex-shrink-0 pt-0.5">
+              {speaker && (
+                <User
+                  className="w-3.5 h-3.5"
+                  style={{ color: speaker.color }}
+                  title={speaker.name}
+                />
               )}
-              <StickyNote className="w-3 h-3" />
-              <span>메모 ({memoCount})</span>
-            </button>
-            {showMemos && (
-              <div className="mt-1 pl-4 space-y-1">
-                {cardMemos.slice(0, 3).map((memo) => (
-                  <div
-                    key={memo.id}
-                    onClick={handleMemoClick}
-                    className="flex items-center gap-2 text-xs text-gray-400 hover:text-white cursor-pointer"
-                  >
-                    {memo.completed ? (
-                      <Check className="w-3 h-3 text-accent-green" />
-                    ) : (
-                      <div className="w-3 h-3 border border-gray-500 rounded-sm" />
-                    )}
-                    <span className={memo.completed ? 'line-through text-gray-600' : ''}>
-                      {memo.title}
-                    </span>
-                  </div>
-                ))}
-                {memoCount > 3 && (
-                  <button
-                    onClick={handleMemoClick}
-                    className="text-xs text-gray-500 hover:text-accent-yellow"
-                  >
-                    +{memoCount - 3}개 더 보기
-                  </button>
-                )}
-              </div>
-            )}
+              {memoCount > 0 && (
+                <StickyNote
+                  className="w-3.5 h-3.5 text-accent-yellow cursor-pointer"
+                  onClick={handleMemoClick}
+                  title={`메모 ${memoCount}개 - 클릭하여 이동`}
+                />
+              )}
+            </div>
+            <p className="text-sm text-gray-200 whitespace-pre-wrap flex-1">
+              {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
+              {caption.type !== 'dialogue' && caption.text ? (
+                <span className="text-gray-400">[{caption.text}]</span>
+              ) : (
+                caption.text || (
+                  <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
+                )
+              )}
+            </p>
           </div>
         )}
 
-        {/* 푸터 */}
-        <div className="flex items-center justify-between">
+        {/* 푸터 - 활성 상태일 때만 표시 */}
+        <div
+          className={`flex items-center justify-between mt-2 transition-opacity ${
+            isActive ? 'opacity-100' : 'opacity-0 h-0 mt-0 overflow-hidden'
+          }`}
+        >
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
@@ -404,13 +371,13 @@ export function CCCard({ caption }: CCCardProps) {
           <div className="flex items-center gap-1">
             {/* 메모 버튼 */}
             <button
-              onClick={handleOpenMemo}
-              className={`p-1.5 transition-colors relative ${
+              onClick={handleMemoClick}
+              className={`p-1.5 transition-colors ${
                 memoCount > 0
                   ? 'text-accent-yellow hover:text-accent-yellow/80'
                   : 'text-gray-500 hover:text-white'
               }`}
-              title="메모 추가"
+              title={memoCount > 0 ? `메모 ${memoCount}개` : '메모 추가'}
             >
               <StickyNote className="w-4 h-4" />
             </button>
