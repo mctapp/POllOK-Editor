@@ -78,8 +78,8 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   seekForward1Frame: 'Shift+ArrowRight',
   zoomIn: '=',
   zoomOut: '-',
-  addADCard: 'Ctrl+Shift+A',
-  addCCCard: 'Ctrl+Shift+C',
+  addADCard: 'Ctrl+D',
+  addCCCard: 'Ctrl+T',
 };
 
 /**

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ActiveTab = 'ad' | 'cc';
+type ActiveTab = 'ad' | 'cc' | 'memo';
 type DialogType = 'newProject' | 'settings' | 'export' | 'about' | null;
 
 interface UIState {

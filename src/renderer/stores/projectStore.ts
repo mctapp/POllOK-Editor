@@ -1,8 +1,17 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { Project, ProjectSettings, VideoInfo } from '../../shared/types';
+import type { Project, ProjectSettings, VideoInfo, AudioDescription, Caption, Speaker, Memo } from '../../shared/types';
 import { DEFAULT_PROJECT_SETTINGS } from '../../shared/constants';
 import { v4 as uuidv4 } from 'uuid';
+
+// 프로젝트 파일에 저장되는 전체 데이터 구조
+export interface ProjectFileData {
+  project: Project;
+  descriptions: AudioDescription[];
+  captions: Caption[];
+  speakers: Speaker[];
+  memos: Memo[];
+}
 
 interface ProjectState {
   // 상태
@@ -21,6 +30,14 @@ interface ProjectState {
   setVideo: (video: VideoInfo) => void;
   updateSettings: (settings: Partial<ProjectSettings>) => void;
 }
+
+// 다른 스토어 가져오기 (순환 참조 방지를 위해 동적 import 사용)
+const getOtherStores = async () => {
+  const { useADStore } = await import('./adStore');
+  const { useCCStore } = await import('./ccStore');
+  const { useMemoStore } = await import('./memoStore');
+  return { useADStore, useCCStore, useMemoStore };
+};
 
 export const useProjectStore = create<ProjectState>()(
   subscribeWithSelector((set, get) => ({
@@ -51,13 +68,31 @@ export const useProjectStore = create<ProjectState>()(
 
     openProject: async (path: string) => {
       try {
-        const projectData = await window.api.file.readProject<Project>(path);
+        const fileData = await window.api.file.readProject<ProjectFileData>(path);
+
+        // 프로젝트 데이터 설정
         set({
-          project: projectData,
+          project: fileData.project,
           filePath: path,
           isDirty: false,
           lastSaved: new Date(),
         });
+
+        // 다른 스토어 데이터 복원
+        const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+
+        if (fileData.descriptions) {
+          useADStore.getState().setDescriptions(fileData.descriptions);
+        }
+        if (fileData.captions) {
+          useCCStore.getState().setCaptions(fileData.captions);
+        }
+        if (fileData.speakers) {
+          useCCStore.getState().setSpeakers(fileData.speakers);
+        }
+        if (fileData.memos) {
+          useMemoStore.getState().setMemos(fileData.memos);
+        }
       } catch (error) {
         console.error('Failed to open project:', error);
         throw error;
@@ -68,7 +103,22 @@ export const useProjectStore = create<ProjectState>()(
       const { project, filePath } = get();
       if (!project) return;
 
-      const content = JSON.stringify(project, null, 2);
+      // 다른 스토어에서 데이터 가져오기
+      const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+      const descriptions = useADStore.getState().descriptions;
+      const captions = useCCStore.getState().captions;
+      const speakers = useCCStore.getState().speakers;
+      const memos = useMemoStore.getState().memos;
+
+      const fileData: ProjectFileData = {
+        project: { ...project, modifiedAt: new Date().toISOString() },
+        descriptions,
+        captions,
+        speakers,
+        memos,
+      };
+
+      const content = JSON.stringify(fileData, null, 2);
       const savedPath = await window.api.file.saveProject({
         path: filePath ?? undefined,
         content,
@@ -78,9 +128,8 @@ export const useProjectStore = create<ProjectState>()(
         // 파일명에서 프로젝트 제목 추출 (첫 저장 시)
         let newTitle = project.title;
         if (!filePath) {
-          // 새로 저장하는 경우 파일명을 프로젝트 제목으로 사용
           const filename = savedPath.split('/').pop() || savedPath.split('\\').pop() || '';
-          newTitle = filename.replace(/\.accessflow$/i, '') || project.title;
+          newTitle = filename.replace(/\.afproj$/i, '') || project.title;
         }
 
         const updatedProject = {
@@ -89,9 +138,13 @@ export const useProjectStore = create<ProjectState>()(
           modifiedAt: new Date().toISOString(),
         };
 
-        // 프로젝트 파일 다시 저장 (제목 업데이트 반영)
+        // 제목이 변경된 경우 다시 저장
         if (newTitle !== project.title) {
-          const updatedContent = JSON.stringify(updatedProject, null, 2);
+          const updatedFileData: ProjectFileData = {
+            ...fileData,
+            project: updatedProject,
+          };
+          const updatedContent = JSON.stringify(updatedFileData, null, 2);
           await window.api.file.saveProject({
             path: savedPath,
             content: updatedContent,
@@ -111,13 +164,27 @@ export const useProjectStore = create<ProjectState>()(
       const { project } = get();
       if (!project) return;
 
-      const content = JSON.stringify(project, null, 2);
+      // 다른 스토어에서 데이터 가져오기
+      const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+      const descriptions = useADStore.getState().descriptions;
+      const captions = useCCStore.getState().captions;
+      const speakers = useCCStore.getState().speakers;
+      const memos = useMemoStore.getState().memos;
+
+      const fileData: ProjectFileData = {
+        project,
+        descriptions,
+        captions,
+        speakers,
+        memos,
+      };
+
+      const content = JSON.stringify(fileData, null, 2);
       const savedPath = await window.api.file.saveProject({ content });
 
       if (savedPath) {
-        // 파일명에서 프로젝트 제목 추출
         const filename = savedPath.split('/').pop() || savedPath.split('\\').pop() || '';
-        const newTitle = filename.replace(/\.accessflow$/i, '') || project.title;
+        const newTitle = filename.replace(/\.afproj$/i, '') || project.title;
 
         const updatedProject = {
           ...project,
@@ -125,8 +192,11 @@ export const useProjectStore = create<ProjectState>()(
           modifiedAt: new Date().toISOString(),
         };
 
-        // 프로젝트 파일 다시 저장 (제목 업데이트 반영)
-        const updatedContent = JSON.stringify(updatedProject, null, 2);
+        const updatedFileData: ProjectFileData = {
+          ...fileData,
+          project: updatedProject,
+        };
+        const updatedContent = JSON.stringify(updatedFileData, null, 2);
         await window.api.file.saveProject({
           path: savedPath,
           content: updatedContent,
@@ -141,7 +211,13 @@ export const useProjectStore = create<ProjectState>()(
       }
     },
 
-    closeProject: () => {
+    closeProject: async () => {
+      // 다른 스토어 초기화
+      const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+      useADStore.getState().reset();
+      useCCStore.getState().reset();
+      useMemoStore.getState().reset();
+
       set({
         project: null,
         filePath: null,
