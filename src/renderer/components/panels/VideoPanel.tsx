@@ -195,13 +195,18 @@ export function VideoPanel() {
       // 재생 전에 현재 프레임 위치로 동기화
       // zustand store에서 직접 최신 값 읽기 (React 상태 지연 문제 회피)
       const state = useVideoStore.getState();
-      if (state.fps > 0 && state.duration > 0) {
+      console.log('Play: store state', { currentFrame: state.currentFrame, fps: state.fps, duration: state.duration });
+      console.log('Play: video state', { currentTime: video.currentTime, duration: video.duration, readyState: video.readyState });
+
+      if (state.fps > 0 && state.duration > 0 && video.readyState >= 2) {
         const targetTime = state.currentFrame / state.fps;
-        console.log('Play: seeking to frame', state.currentFrame, 'time', targetTime, 'current video time', video.currentTime);
+        // 비디오 실제 duration 내로 제한
+        const clampedTime = Math.min(targetTime, video.duration - 0.1);
+        console.log('Play: seeking to time', clampedTime, '(original target:', targetTime, ')');
 
         // 현재 위치와 다르면 seek 후 play
-        if (Math.abs(video.currentTime - targetTime) > 0.05) {
-          video.currentTime = targetTime;
+        if (Math.abs(video.currentTime - clampedTime) > 0.05) {
+          video.currentTime = clampedTime;
           // seeked 이벤트 대기 후 재생
           const onSeeked = () => {
             console.log('Seeked complete, now playing from', video.currentTime);
@@ -212,6 +217,7 @@ export function VideoPanel() {
           // fallback timeout
           setTimeout(() => {
             video.removeEventListener('seeked', onSeeked);
+            console.log('Seeked timeout, playing from', video.currentTime);
             video.play().catch(() => setIsPlaying(false));
           }, 200);
           return;
