@@ -192,16 +192,36 @@ export function VideoPanel() {
     if (!video || !source) return;
 
     if (isPlaying) {
-      // 재생 전에 현재 프레임 위치로 동기화 (ref에서 최신 값 읽기)
-      if (fps > 0 && duration > 0) {
-        const targetTime = currentFrameRef.current / fps;
-        video.currentTime = targetTime;
+      // 재생 전에 현재 프레임 위치로 동기화
+      // zustand store에서 직접 최신 값 읽기 (React 상태 지연 문제 회피)
+      const state = useVideoStore.getState();
+      if (state.fps > 0 && state.duration > 0) {
+        const targetTime = state.currentFrame / state.fps;
+        console.log('Play: seeking to frame', state.currentFrame, 'time', targetTime, 'current video time', video.currentTime);
+
+        // 현재 위치와 다르면 seek 후 play
+        if (Math.abs(video.currentTime - targetTime) > 0.05) {
+          video.currentTime = targetTime;
+          // seeked 이벤트 대기 후 재생
+          const onSeeked = () => {
+            console.log('Seeked complete, now playing from', video.currentTime);
+            video.play().catch(() => setIsPlaying(false));
+            video.removeEventListener('seeked', onSeeked);
+          };
+          video.addEventListener('seeked', onSeeked);
+          // fallback timeout
+          setTimeout(() => {
+            video.removeEventListener('seeked', onSeeked);
+            video.play().catch(() => setIsPlaying(false));
+          }, 200);
+          return;
+        }
       }
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [isPlaying, source, fps, duration, setIsPlaying]);
+  }, [isPlaying, source, setIsPlaying]);
 
   // 재생 속도 동기화
   useEffect(() => {
