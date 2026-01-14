@@ -8,8 +8,9 @@ import {
   Filter,
   ChevronsUpDown,
   StickyNote,
+  ExternalLink,
 } from 'lucide-react';
-import { useMemoStore, useADStore, useCCStore, useVideoStore } from '../../stores';
+import { useMemoStore, useADStore, useCCStore, useVideoStore, useUIStore } from '../../stores';
 import type { Memo } from '../../../shared/types';
 import { MemoDialog } from '../MemoDialog';
 
@@ -25,9 +26,10 @@ export function MemoPanel() {
     setFilter,
     deleteMemo,
   } = useMemoStore();
-  const { descriptions } = useADStore();
-  const { captions } = useCCStore();
+  const { descriptions, selectDescription } = useADStore();
+  const { captions, selectCaption } = useCCStore();
   const { fps, seekToFrame } = useVideoStore();
+  const { setActiveTab } = useUIStore();
 
   const [editingMemo, setEditingMemo] = useState<Memo | null>(null);
 
@@ -82,10 +84,19 @@ export function MemoPanel() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleSeekToCard = (memo: Memo) => {
+  // 해당 카드로 이동 (탭 전환 + 카드 선택 + 비디오 seek)
+  const handleNavigateToCard = (memo: Memo) => {
     const cardInfo = getCardInfo(memo);
     if (cardInfo) {
       seekToFrame(cardInfo.tcIn);
+    }
+    // 탭 전환 및 카드 선택
+    if (memo.cardType === 'ad') {
+      setActiveTab('ad');
+      selectDescription(memo.cardId, false);
+    } else {
+      setActiveTab('cc');
+      selectCaption(memo.cardId, false);
     }
   };
 
@@ -229,17 +240,20 @@ export function MemoPanel() {
                       </p>
                     )}
 
-                    {/* 카드 정보 */}
+                    {/* 카드 정보 - 클릭 시 해당 카드로 이동 */}
                     {cardInfo && (
                       <div
-                        className="text-xs text-gray-500 bg-dark-bg/50 rounded p-2 mb-2 cursor-pointer hover:bg-dark-bg"
-                        onClick={() => handleSeekToCard(memo)}
+                        className="flex items-center gap-2 text-xs text-gray-500 bg-dark-bg/50 rounded p-2 mb-2 cursor-pointer hover:bg-dark-bg group"
+                        onClick={() => handleNavigateToCard(memo)}
                       >
-                        <span className="font-timecode text-gray-600">
-                          {formatTimecode(cardInfo.tcIn)}
-                        </span>
-                        <span className="mx-2">•</span>
-                        <span className="text-gray-400 line-clamp-1">{cardInfo.text || '(내용 없음)'}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-timecode text-gray-600">
+                            {formatTimecode(cardInfo.tcIn)}
+                          </span>
+                          <span className="mx-2">•</span>
+                          <span className="text-gray-400 line-clamp-1">{cardInfo.text || '(내용 없음)'}</span>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-600 group-hover:text-accent-yellow flex-shrink-0" />
                       </div>
                     )}
 

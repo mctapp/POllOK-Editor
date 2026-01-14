@@ -3,7 +3,6 @@ import {
   Pencil,
   Trash2,
   Clock,
-  User,
   CheckSquare,
   Square,
   History,
@@ -11,7 +10,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
-import { useCCStore, useVideoStore, useMemoStore, useUIStore } from '../../stores';
+import { useCCStore, useVideoStore, useMemoStore, useUIStore, useSettingsStore } from '../../stores';
 import { CC_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
 
@@ -57,13 +56,12 @@ export function CCCard({ caption }: CCCardProps) {
     updateCaption,
     deleteCaption,
     setEditingId,
-    speakers,
   } = useCCStore();
   const { fps, seekToFrame } = useVideoStore();
+  const { script } = useSettingsStore();
 
   const isSelected = selectedIds.includes(caption.id);
   const isEditing = editingId === caption.id;
-  const speaker = speakers.find((s) => s.id === caption.speakerId);
   const isActive = isSelected || isEditing || isHovered;
 
   // 편집 모드 진입 시 textarea에 포커스
@@ -316,40 +314,22 @@ export function CCCard({ caption }: CCCardProps) {
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             onClick={(e) => e.stopPropagation()}
-            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-accent-green focus:outline-none"
+            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-white resize-none focus:border-accent-green focus:outline-none"
+            style={{ fontSize: `${script.fontSize}px` }}
             rows={2}
             placeholder="자막 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
           />
         ) : (
-          <div className="flex items-start gap-2">
-            {/* 상태 아이콘들 - 비활성 상태에서도 표시 */}
-            <div className="flex items-center gap-1 flex-shrink-0 pt-0.5">
-              {speaker && (
-                <User
-                  className="w-3.5 h-3.5"
-                  style={{ color: speaker.color }}
-                  title={speaker.name}
-                />
-              )}
-              {memoCount > 0 && (
-                <StickyNote
-                  className="w-3.5 h-3.5 text-accent-yellow cursor-pointer"
-                  onClick={handleMemoClick}
-                  title={`메모 ${memoCount}개 - 클릭하여 이동`}
-                />
-              )}
-            </div>
-            <p className="text-sm text-gray-200 whitespace-pre-wrap flex-1">
-              {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
-              {caption.type !== 'dialogue' && caption.text ? (
-                <span className="text-gray-400">[{caption.text}]</span>
-              ) : (
-                caption.text || (
-                  <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
-                )
-              )}
-            </p>
-          </div>
+          <p className="text-gray-200 whitespace-pre-wrap" style={{ fontSize: `${script.fontSize}px` }}>
+            {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
+            {caption.type !== 'dialogue' && caption.text ? (
+              <span className="text-gray-400">[{caption.text}]</span>
+            ) : (
+              caption.text || (
+                <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
+              )
+            )}
+          </p>
         )}
 
         {/* 푸터 - 활성 상태일 때만 표시 */}

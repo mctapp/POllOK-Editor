@@ -46,6 +46,14 @@ export interface TimelineSettings {
 }
 
 /**
+ * 스크립트 설정
+ */
+export interface ScriptSettings {
+  /** 스크립트 글꼴 크기 (12 ~ 24) */
+  fontSize: number;
+}
+
+/**
  * 전체 설정
  */
 interface SettingsState {
@@ -55,12 +63,16 @@ interface SettingsState {
   // 타임라인 설정
   timeline: TimelineSettings;
 
+  // 스크립트 설정
+  script: ScriptSettings;
+
   // 키보드 단축키
   shortcuts: KeyboardShortcuts;
 
   // 액션
   setWaveformSettings: (settings: Partial<WaveformSettings>) => void;
   setTimelineSettings: (settings: Partial<TimelineSettings>) => void;
+  setScriptSettings: (settings: Partial<ScriptSettings>) => void;
   setShortcut: (key: keyof KeyboardShortcuts, value: string) => void;
   resetToDefaults: () => void;
 }
@@ -100,6 +112,13 @@ export const DEFAULT_TIMELINE: TimelineSettings = {
 };
 
 /**
+ * 기본 스크립트 설정
+ */
+export const DEFAULT_SCRIPT: ScriptSettings = {
+  fontSize: 14,
+};
+
+/**
  * 설정 스토어
  */
 export const useSettingsStore = create<SettingsState>()(
@@ -107,6 +126,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       waveform: { ...DEFAULT_WAVEFORM },
       timeline: { ...DEFAULT_TIMELINE },
+      script: { ...DEFAULT_SCRIPT },
       shortcuts: { ...DEFAULT_SHORTCUTS },
 
       setWaveformSettings: (settings) =>
@@ -119,6 +139,11 @@ export const useSettingsStore = create<SettingsState>()(
           timeline: { ...state.timeline, ...settings },
         })),
 
+      setScriptSettings: (settings) =>
+        set((state) => ({
+          script: { ...state.script, ...settings },
+        })),
+
       setShortcut: (key, value) =>
         set((state) => ({
           shortcuts: { ...state.shortcuts, [key]: value },
@@ -128,6 +153,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({
           waveform: { ...DEFAULT_WAVEFORM },
           timeline: { ...DEFAULT_TIMELINE },
+          script: { ...DEFAULT_SCRIPT },
           shortcuts: { ...DEFAULT_SHORTCUTS },
         }),
     }),
