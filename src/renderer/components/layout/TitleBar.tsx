@@ -31,7 +31,7 @@ export function TitleBar() {
       {/* 드래그 영역 */}
       <div
         className={`flex-1 h-full app-drag-region flex items-center ${
-          isMac ? 'pl-20' : 'px-3'
+          isMac ? 'pl-20' : 'pl-2'
         }`}
       >
         <span className="text-xs text-gray-400 truncate">{title}</span>

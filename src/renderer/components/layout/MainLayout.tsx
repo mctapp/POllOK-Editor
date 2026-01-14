@@ -9,8 +9,13 @@ import { TimelinePanel } from '../panels/TimelinePanel';
 import { useUIStore } from '../../stores';
 
 export function MainLayout() {
-  const { leftPanelWidth, timelineHeight, setLeftPanelWidth, setTimelineHeight } =
-    useUIStore();
+  const {
+    leftPanelWidth,
+    timelineHeight,
+    isTimelineCollapsed,
+    setLeftPanelWidth,
+    setTimelineHeight,
+  } = useUIStore();
 
   const handleLeftResize = useCallback(
     (delta: number) => {
@@ -52,13 +57,18 @@ export function MainLayout() {
           </div>
         </div>
 
-        {/* 수평 분할선 */}
-        <PanelSplitter direction="horizontal" onResize={handleTimelineResize} />
+        {/* 타임라인 (isTimelineCollapsed가 false일 때만 표시) */}
+        {!isTimelineCollapsed && (
+          <>
+            {/* 수평 분할선 */}
+            <PanelSplitter direction="horizontal" onResize={handleTimelineResize} />
 
-        {/* 하단: 타임라인 */}
-        <div style={{ height: timelineHeight }} className="flex-shrink-0 overflow-hidden">
-          <TimelinePanel />
-        </div>
+            {/* 하단: 타임라인 */}
+            <div style={{ height: timelineHeight }} className="flex-shrink-0 overflow-hidden">
+              <TimelinePanel />
+            </div>
+          </>
+        )}
       </div>
 
       {/* 상태바 */}

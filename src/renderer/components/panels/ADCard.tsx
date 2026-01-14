@@ -63,7 +63,7 @@ export function ADCard({ description }: ADCardProps) {
     deleteDescription,
     setEditingId,
   } = useADStore();
-  const { fps, seekToFrame } = useVideoStore();
+  const { fps, seekToFrame, currentFrame, isPlaying: videoIsPlaying } = useVideoStore();
   const { getMemosForCard } = useMemoStore();
   const { setActiveTab } = useUIStore();
   const { filePath: projectPath } = useProjectStore();
@@ -87,6 +87,42 @@ export function ADCard({ description }: ADCardProps) {
   useEffect(() => {
     setEditText(description.text);
   }, [description.text]);
+
+  // 타임코드 진입 시 녹음 자동 재생
+  const prevFrameRef = useRef<number | null>(null);
+  useEffect(() => {
+    // 비디오가 재생 중이고, 녹음 파일이 있고, 현재 재생 중이지 않을 때만
+    if (!videoIsPlaying || !hasRecording || isPlaying) {
+      prevFrameRef.current = currentFrame;
+      return;
+    }
+
+    const prevFrame = prevFrameRef.current;
+    const tcIn = description.tcIn;
+
+    // 이전 프레임이 tcIn 이전이고 현재 프레임이 tcIn 이후인 경우 (진입)
+    // 또는 현재 프레임이 정확히 tcIn인 경우
+    const justEntered =
+      (prevFrame !== null && prevFrame < tcIn && currentFrame >= tcIn) ||
+      (prevFrame === null && currentFrame >= tcIn && currentFrame < tcIn + fps); // 첫 진입
+
+    if (justEntered && description.audioFile) {
+      const audioUrl = window.api.utils.getFileUrl(description.audioFile);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => setIsPlaying(false);
+      audio.onerror = () => {
+        console.error('오디오 재생 실패');
+        setIsPlaying(false);
+      };
+
+      audio.play();
+      setIsPlaying(true);
+    }
+
+    prevFrameRef.current = currentFrame;
+  }, [currentFrame, videoIsPlaying, hasRecording, isPlaying, description.tcIn, description.audioFile, fps]);
 
   const formatTimecode = (frame: number) => {
     const totalSeconds = frame / fps;
@@ -368,8 +404,8 @@ export function ADCard({ description }: ADCardProps) {
       >
         {/* 헤더 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between mb-2 transition-opacity ${
-            isActive ? 'opacity-100' : 'opacity-0 h-0 mb-0 overflow-hidden'
+          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+            isActive ? 'opacity-100 max-h-12 mb-2' : 'opacity-0 max-h-0 mb-0'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -491,8 +527,8 @@ export function ADCard({ description }: ADCardProps) {
 
         {/* 푸터 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between mt-2 transition-opacity ${
-            isActive ? 'opacity-100' : 'opacity-0 h-0 mt-0 overflow-hidden'
+          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+            isActive ? 'opacity-100 max-h-12 mt-2' : 'opacity-0 max-h-0 mt-0'
           }`}
         >
           <div className="flex items-center gap-3 text-xs text-gray-500">
