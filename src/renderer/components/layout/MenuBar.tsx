@@ -16,7 +16,7 @@ interface MenuItem {
 export function MenuBar() {
   const [showPreferences, setShowPreferences] = useState(false);
   const { project, createProject, saveProject, closeProject } = useProjectStore();
-  const { setOpenDialog, setActiveTab } = useUIStore();
+  const { setOpenDialog, setActiveTab, isTimelineCollapsed, toggleTimeline } = useUIStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
   const { fps } = useVideoStore();
@@ -184,6 +184,21 @@ export function MenuBar() {
     View: [
       { label: 'AD 패널', shortcut: `${modKey}+1`, action: () => setActiveTab('ad') },
       { label: 'CC 패널', shortcut: `${modKey}+2`, action: () => setActiveTab('cc') },
+      { label: '메모 패널', shortcut: `${modKey}+3`, action: () => setActiveTab('memo') },
+      { separator: true },
+      {
+        label: '작업화면 설정',
+        submenu: [
+          {
+            label: isTimelineCollapsed ? '◯ 영상 + 스크립트' : '● 영상 + 스크립트',
+            action: () => !isTimelineCollapsed && toggleTimeline(),
+          },
+          {
+            label: isTimelineCollapsed ? '● 영상 + 스크립트 + 타임라인' : '◯ 영상 + 스크립트 + 타임라인',
+            action: () => isTimelineCollapsed && toggleTimeline(),
+          },
+        ],
+      },
       { separator: true },
       { label: '확대', shortcut: `${modKey}++`, disabled: true },
       { label: '축소', shortcut: `${modKey}+-`, disabled: true },

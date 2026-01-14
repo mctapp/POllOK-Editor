@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { X, RotateCcw, Keyboard, AudioWaveform, LayoutPanelTop } from 'lucide-react';
+import { X, RotateCcw, Keyboard, AudioWaveform, LayoutPanelTop, Type } from 'lucide-react';
 import {
   useSettingsStore,
   SHORTCUT_LABELS,
   DEFAULT_SHORTCUTS,
   DEFAULT_WAVEFORM,
   DEFAULT_TIMELINE,
+  DEFAULT_SCRIPT,
   type KeyboardShortcuts,
 } from '../stores';
 
@@ -14,7 +15,7 @@ interface PreferencesDialogProps {
   onClose: () => void;
 }
 
-type TabType = 'waveform' | 'timeline' | 'shortcuts';
+type TabType = 'waveform' | 'timeline' | 'script' | 'shortcuts';
 
 export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
   const [activeTab, setActiveTab] = useState<TabType>('waveform');
@@ -23,9 +24,11 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
   const {
     waveform,
     timeline,
+    script,
     shortcuts,
     setWaveformSettings,
     setTimelineSettings,
+    setScriptSettings,
     setShortcut,
     resetToDefaults,
   } = useSettingsStore();
@@ -107,6 +110,17 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
           >
             <LayoutPanelTop className="w-4 h-4" />
             타임라인
+          </button>
+          <button
+            onClick={() => setActiveTab('script')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs transition-colors ${
+              activeTab === 'script'
+                ? 'text-accent-yellow border-b-2 border-accent-yellow'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Type className="w-4 h-4" />
+            스크립트
           </button>
           <button
             onClick={() => setActiveTab('shortcuts')}
@@ -227,6 +241,48 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
               <div className="pt-2">
                 <button
                   onClick={() => setTimelineSettings(DEFAULT_TIMELINE)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  기본값으로 복원
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 스크립트 설정 */}
+          {activeTab === 'script' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">
+                  스크립트 글꼴 크기 - {script.fontSize}px
+                </label>
+                <input
+                  type="range"
+                  min="12"
+                  max="24"
+                  step="1"
+                  value={script.fontSize}
+                  onChange={(e) => setScriptSettings({ fontSize: Number(e.target.value) })}
+                  className="w-full accent-accent-yellow"
+                />
+                <div className="flex justify-between text-xs text-gray-600 mt-1">
+                  <span>12px (작게)</span>
+                  <span>24px (크게)</span>
+                </div>
+              </div>
+
+              {/* 미리보기 */}
+              <div className="mt-4 p-3 bg-dark-surface rounded border border-dark-border">
+                <p className="text-gray-400 text-xs mb-2">미리보기</p>
+                <p className="text-gray-200" style={{ fontSize: `${script.fontSize}px` }}>
+                  화면해설: 넓은 바다를 배경으로 주인공이 서 있다.
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setScriptSettings(DEFAULT_SCRIPT)}
                   className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />

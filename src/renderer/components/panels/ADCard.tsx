@@ -13,7 +13,7 @@ import {
   StopCircle,
 } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
-import { useADStore, useVideoStore, useMemoStore, useUIStore, useProjectStore } from '../../stores';
+import { useADStore, useVideoStore, useMemoStore, useUIStore, useProjectStore, useSettingsStore } from '../../stores';
 import { AD_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
 
@@ -67,6 +67,7 @@ export function ADCard({ description }: ADCardProps) {
   const { getMemosForCard } = useMemoStore();
   const { setActiveTab } = useUIStore();
   const { filePath: projectPath } = useProjectStore();
+  const { script } = useSettingsStore();
 
   const cardMemos = getMemosForCard(description.id, 'ad');
   const memoCount = cardMemos.length;
@@ -475,35 +476,17 @@ export function ADCard({ description }: ADCardProps) {
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             onClick={(e) => e.stopPropagation()}
-            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-brand-brown focus:outline-none"
+            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-white resize-none focus:border-brand-brown focus:outline-none"
+            style={{ fontSize: `${script.fontSize}px` }}
             rows={3}
             placeholder="해설 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
           />
         ) : (
-          <div className="flex items-start gap-2">
-            {/* 상태 아이콘들 - 비활성 상태에서도 표시 */}
-            <div className="flex items-center gap-1 flex-shrink-0 pt-0.5">
-              {hasRecording && (
-                <Mic
-                  className="w-3.5 h-3.5 text-accent-green cursor-pointer"
-                  onClick={handlePlayRecording}
-                  title="녹음 재생"
-                />
-              )}
-              {memoCount > 0 && (
-                <StickyNote
-                  className="w-3.5 h-3.5 text-accent-yellow cursor-pointer"
-                  onClick={handleMemoClick}
-                  title={`메모 ${memoCount}개 - 클릭하여 이동`}
-                />
-              )}
-            </div>
-            <p className="text-sm text-gray-200 whitespace-pre-wrap flex-1">
-              {description.text || (
-                <span className="text-gray-500 italic">해설 텍스트를 입력하세요</span>
-              )}
-            </p>
-          </div>
+          <p className="text-gray-200 whitespace-pre-wrap" style={{ fontSize: `${script.fontSize}px` }}>
+            {description.text || (
+              <span className="text-gray-500 italic">해설 텍스트를 입력하세요</span>
+            )}
+          </p>
         )}
 
         {/* 푸터 - 활성 상태일 때만 표시 */}
