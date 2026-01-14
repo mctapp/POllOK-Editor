@@ -125,13 +125,15 @@ export interface Feedback {
   cardId: string; // AD 또는 CC 카드 ID
   cardType: 'ad' | 'cc';
   guideCode: string; // 가이드 코드 (A01, B01, etc.)
-  comment: string; // 세부 커멘트
+  comment: string; // 감수자 커멘트
+  writerReply: string; // 작가 답변/의견
   status: FeedbackStatus;
   createdAt: string;
   modifiedAt: string;
 }
 
-export type FeedbackStatus = 'pending' | 'resolved';
+// 피드백 상태: 보완요청(pending) → 진행중(in_progress) → 보완완료(resolved)
+export type FeedbackStatus = 'pending' | 'in_progress' | 'resolved';
 
 // App Mode Types
 export type AppMode = 'writer' | 'reviewer';

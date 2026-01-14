@@ -119,7 +119,7 @@ export function StartScreen() {
                   onClick={() => setAppMode('writer')}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
                     appMode === 'writer'
-                      ? 'bg-brand-brown text-white'
+                      ? 'bg-accent-green text-white'
                       : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
@@ -130,7 +130,7 @@ export function StartScreen() {
                   onClick={() => setAppMode('reviewer')}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
                     appMode === 'reviewer'
-                      ? 'bg-accent-green text-white'
+                      ? 'bg-brand-brown text-white'
                       : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
@@ -169,7 +169,7 @@ export function StartScreen() {
                   onClick={() => setAppMode('writer')}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
                     appMode === 'writer'
-                      ? 'bg-brand-brown text-white'
+                      ? 'bg-accent-green text-white'
                       : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
@@ -180,7 +180,7 @@ export function StartScreen() {
                   onClick={() => setAppMode('reviewer')}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
                     appMode === 'reviewer'
-                      ? 'bg-accent-green text-white'
+                      ? 'bg-brand-brown text-white'
                       : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >

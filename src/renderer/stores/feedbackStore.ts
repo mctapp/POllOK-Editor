@@ -10,9 +10,10 @@ interface FeedbackState {
   addFeedback: (cardId: string, cardType: 'ad' | 'cc', guideCode: string, comment: string) => void;
   updateFeedback: (id: string, updates: Partial<Feedback>) => void;
   deleteFeedback: (id: string) => void;
-  resolveFeedback: (id: string) => void;
+  setStatus: (id: string, status: FeedbackStatus) => void;
+  setWriterReply: (id: string, reply: string) => void;
   getFeedbacksForCard: (cardId: string, cardType: 'ad' | 'cc') => Feedback[];
-  getPendingFeedbacks: () => Feedback[];
+  getUnresolvedFeedbacks: () => Feedback[];
   toggleExpand: (id: string) => void;
   expandAll: () => void;
   collapseAll: () => void;
@@ -34,6 +35,7 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
       cardType,
       guideCode,
       comment,
+      writerReply: '',
       status: 'pending',
       createdAt: now,
       modifiedAt: now,
@@ -58,10 +60,18 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
     }));
   },
 
-  resolveFeedback: (id) => {
+  setStatus: (id, status) => {
     set((state) => ({
       feedbacks: state.feedbacks.map((f) =>
-        f.id === id ? { ...f, status: 'resolved' as FeedbackStatus, modifiedAt: new Date().toISOString() } : f
+        f.id === id ? { ...f, status, modifiedAt: new Date().toISOString() } : f
+      ),
+    }));
+  },
+
+  setWriterReply: (id, reply) => {
+    set((state) => ({
+      feedbacks: state.feedbacks.map((f) =>
+        f.id === id ? { ...f, writerReply: reply, modifiedAt: new Date().toISOString() } : f
       ),
     }));
   },
@@ -70,8 +80,8 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
     return get().feedbacks.filter((f) => f.cardId === cardId && f.cardType === cardType);
   },
 
-  getPendingFeedbacks: () => {
-    return get().feedbacks.filter((f) => f.status === 'pending');
+  getUnresolvedFeedbacks: () => {
+    return get().feedbacks.filter((f) => f.status !== 'resolved');
   },
 
   toggleExpand: (id) => {
