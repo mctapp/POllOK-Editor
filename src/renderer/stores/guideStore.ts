@@ -20,8 +20,8 @@ export const useGuideStore = create<GuideState>((set, get) => ({
 
   loadGuides: async () => {
     try {
-      // guide 폴더에서 엑셀 파일 로드
-      const response = await fetch('/guide/AD-Guide-V1.2.xlsx');
+      // guide 폴더에서 엑셀 파일 로드 (publicDir이 guide 폴더로 설정됨)
+      const response = await fetch('/AD-Guide-V1.2.xlsx');
       const arrayBuffer = await response.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 

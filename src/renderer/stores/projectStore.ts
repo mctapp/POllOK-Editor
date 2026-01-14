@@ -119,7 +119,7 @@ export const useProjectStore = create<ProjectState>()(
         });
 
         // 다른 스토어 데이터 복원
-        const { useADStore, useCCStore, useMemoStore, useVideoStore } = await getOtherStores();
+        const { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore } = await getOtherStores();
 
         if (fileData.descriptions) {
           useADStore.getState().setDescriptions(fileData.descriptions);
