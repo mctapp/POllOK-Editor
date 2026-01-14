@@ -197,8 +197,25 @@ export function VideoPanel() {
       const state = useVideoStore.getState();
       if (state.fps > 0 && state.duration > 0) {
         const targetTime = state.currentFrame / state.fps;
-        console.log('Play: seeking to frame', state.currentFrame, 'time', targetTime);
-        video.currentTime = targetTime;
+        console.log('Play: seeking to frame', state.currentFrame, 'time', targetTime, 'current video time', video.currentTime);
+
+        // 현재 위치와 다르면 seek 후 play
+        if (Math.abs(video.currentTime - targetTime) > 0.05) {
+          video.currentTime = targetTime;
+          // seeked 이벤트 대기 후 재생
+          const onSeeked = () => {
+            console.log('Seeked complete, now playing from', video.currentTime);
+            video.play().catch(() => setIsPlaying(false));
+            video.removeEventListener('seeked', onSeeked);
+          };
+          video.addEventListener('seeked', onSeeked);
+          // fallback timeout
+          setTimeout(() => {
+            video.removeEventListener('seeked', onSeeked);
+            video.play().catch(() => setIsPlaying(false));
+          }, 200);
+          return;
+        }
       }
       video.play().catch(() => setIsPlaying(false));
     } else {
