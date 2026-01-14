@@ -107,8 +107,12 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
       analyser.smoothingTimeConstant = 0.3;
 
       const sourceNode = audioContext.createMediaElementSource(audio);
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0; // 음소거
+
       sourceNode.connect(analyser);
-      // destination에 연결하지 않아 소리 안 남
+      analyser.connect(gainNode);
+      gainNode.connect(audioContext.destination); // 데이터 흐름을 위해 destination 연결 필요
 
       const peaks: number[] = [];
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -130,8 +134,24 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
           // 해당 위치로 시크
           audio.currentTime = targetTime;
 
-          // 짧은 대기 (버퍼 채우기)
-          await this.yieldToMain(10);
+          // seeked 이벤트 대기
+          await new Promise<void>((resolve) => {
+            const onSeeked = () => {
+              audio.removeEventListener('seeked', onSeeked);
+              resolve();
+            };
+            audio.addEventListener('seeked', onSeeked);
+            setTimeout(resolve, 50); // 타임아웃
+          });
+
+          // 짧게 재생하여 오디오 버퍼 채우기
+          try {
+            await audio.play();
+            await this.yieldToMain(30); // 30ms 재생
+            audio.pause();
+          } catch {
+            // 재생 실패 시 무시
+          }
 
           // 오디오 레벨 측정
           analyser.getByteFrequencyData(dataArray);
@@ -141,12 +161,12 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
             sum += dataArray[k] * dataArray[k];
           }
           const rms = Math.sqrt(sum / dataArray.length);
-          peaks.push(Math.min(1, rms / 100));
+          peaks.push(Math.min(1, rms / 80));
         }
 
         // UI 업데이트 및 메인 스레드 양보
         const progress = Math.floor((chunkEnd / targetSamples) * 90) + 10;
-        const remaining = Math.ceil((targetSamples - chunkEnd) * 0.02);
+        const remaining = Math.ceil((targetSamples - chunkEnd) * 0.08);
         this.reportProgress(progress, `오디오 분석 중... (약 ${remaining}초 남음)`);
 
         await this.yieldToMain(0);
@@ -154,6 +174,8 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
 
       // 정리
       sourceNode.disconnect();
+      analyser.disconnect();
+      gainNode.disconnect();
       await audioContext.close();
 
       return peaks;
