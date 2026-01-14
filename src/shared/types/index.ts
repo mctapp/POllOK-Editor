@@ -28,6 +28,12 @@ export interface ProjectSettings {
   ccMaxLines: number;
 }
 
+// Version History for text snapshots
+export interface TextVersion {
+  text: string;
+  savedAt: string;
+}
+
 // Audio Description Types
 export interface AudioDescription {
   id: string;
@@ -38,6 +44,7 @@ export interface AudioDescription {
   voice: string;
   status: Status;
   needsReview: boolean; // 검토 필요 체크
+  versions?: TextVersion[]; // 버전 기록
   createdAt: string;
   modifiedAt: string;
 }
@@ -57,6 +64,7 @@ export interface Caption {
   type: CaptionType;
   style: CaptionStyle;
   needsReview: boolean; // 검토 필요 체크
+  versions?: TextVersion[]; // 버전 기록
   createdAt: string;
   modifiedAt: string;
 }

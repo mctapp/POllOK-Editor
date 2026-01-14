@@ -11,27 +11,16 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
   const {
     source,
     currentFrame,
-    duration,
     fps,
     togglePlay,
     setInPoint,
     setOutPoint,
     clearPoints,
+    seekToFrame,
   } = useVideoStore();
 
   const { addDescription } = useADStore();
   const { addCaption } = useCCStore();
-
-  // 프레임 탐색 (비디오 요소 직접 제어는 VideoPanel에서 수행)
-  const seekToFrame = useCallback(
-    (frame: number) => {
-      const video = document.querySelector('video');
-      if (!video) return;
-      const clampedFrame = Math.max(0, Math.min(duration, frame));
-      video.currentTime = clampedFrame / fps;
-    },
-    [duration, fps]
-  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -57,11 +46,11 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
           }
           break;
 
-        // 프레임 탐색 (1프레임)
+        // 영상 탐색: 좌/우 = 1초, 상/하 = 5초
         case 'ArrowLeft':
           e.preventDefault();
           if (source) {
-            const delta = e.shiftKey ? Math.round(fps) : 1; // Shift면 1초
+            const delta = e.shiftKey ? 1 : Math.round(fps); // 기본 1초, Shift면 1프레임
             seekToFrame(currentFrame - delta);
           }
           break;
@@ -69,8 +58,24 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         case 'ArrowRight':
           e.preventDefault();
           if (source) {
-            const delta = e.shiftKey ? Math.round(fps) : 1; // Shift면 1초
+            const delta = e.shiftKey ? 1 : Math.round(fps); // 기본 1초, Shift면 1프레임
             seekToFrame(currentFrame + delta);
+          }
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          if (source) {
+            const delta = Math.round(fps * 5); // 5초 앞으로
+            seekToFrame(currentFrame + delta);
+          }
+          break;
+
+        case 'ArrowDown':
+          e.preventDefault();
+          if (source) {
+            const delta = Math.round(fps * 5); // 5초 뒤로
+            seekToFrame(currentFrame - delta);
           }
           break;
 
@@ -149,18 +154,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
           break;
       }
     },
-    [
-      source,
-      currentFrame,
-      fps,
-      togglePlay,
-      setInPoint,
-      setOutPoint,
-      clearPoints,
-      addDescription,
-      addCaption,
-      seekToFrame,
-    ]
+    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame]
   );
 
   useEffect(() => {

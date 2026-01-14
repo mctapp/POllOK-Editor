@@ -68,18 +68,36 @@ export const useProjectStore = create<ProjectState>()(
       const { project, filePath } = get();
       if (!project) return;
 
-      const updatedProject = {
-        ...project,
-        modifiedAt: new Date().toISOString(),
-      };
-
-      const content = JSON.stringify(updatedProject, null, 2);
+      const content = JSON.stringify(project, null, 2);
       const savedPath = await window.api.file.saveProject({
         path: filePath ?? undefined,
         content,
       });
 
       if (savedPath) {
+        // 파일명에서 프로젝트 제목 추출 (첫 저장 시)
+        let newTitle = project.title;
+        if (!filePath) {
+          // 새로 저장하는 경우 파일명을 프로젝트 제목으로 사용
+          const filename = savedPath.split('/').pop() || savedPath.split('\\').pop() || '';
+          newTitle = filename.replace(/\.accessflow$/i, '') || project.title;
+        }
+
+        const updatedProject = {
+          ...project,
+          title: newTitle,
+          modifiedAt: new Date().toISOString(),
+        };
+
+        // 프로젝트 파일 다시 저장 (제목 업데이트 반영)
+        if (newTitle !== project.title) {
+          const updatedContent = JSON.stringify(updatedProject, null, 2);
+          await window.api.file.saveProject({
+            path: savedPath,
+            content: updatedContent,
+          });
+        }
+
         set({
           project: updatedProject,
           filePath: savedPath,
@@ -93,15 +111,27 @@ export const useProjectStore = create<ProjectState>()(
       const { project } = get();
       if (!project) return;
 
-      const updatedProject = {
-        ...project,
-        modifiedAt: new Date().toISOString(),
-      };
-
-      const content = JSON.stringify(updatedProject, null, 2);
+      const content = JSON.stringify(project, null, 2);
       const savedPath = await window.api.file.saveProject({ content });
 
       if (savedPath) {
+        // 파일명에서 프로젝트 제목 추출
+        const filename = savedPath.split('/').pop() || savedPath.split('\\').pop() || '';
+        const newTitle = filename.replace(/\.accessflow$/i, '') || project.title;
+
+        const updatedProject = {
+          ...project,
+          title: newTitle,
+          modifiedAt: new Date().toISOString(),
+        };
+
+        // 프로젝트 파일 다시 저장 (제목 업데이트 반영)
+        const updatedContent = JSON.stringify(updatedProject, null, 2);
+        await window.api.file.saveProject({
+          path: savedPath,
+          content: updatedContent,
+        });
+
         set({
           project: updatedProject,
           filePath: savedPath,
