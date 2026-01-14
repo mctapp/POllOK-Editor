@@ -1,8 +1,7 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 interface WaveformProps {
   peaks: number[];
-  width: number;
   height: number;
   color?: string;
   backgroundColor?: string;
@@ -12,63 +11,74 @@ interface WaveformProps {
 
 export function Waveform({
   peaks,
-  width,
   height,
   color = '#4a5568',
   backgroundColor = 'transparent',
   progress = 0,
   progressColor = '#d4a574',
 }: WaveformProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // 캔버스에 웨이브폼 그리기
   useEffect(() => {
+    const container = containerRef.current;
     const canvas = canvasRef.current;
-    if (!canvas || peaks.length === 0) return;
+    if (!container || !canvas || peaks.length === 0) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const drawWaveform = () => {
+      const width = container.offsetWidth;
+      if (width === 0) return;
 
-    // 고해상도 디스플레이 지원
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    // 배경 지우기
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, width, height);
+      // 고해상도 디스플레이 지원
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.scale(dpr, dpr);
 
-    const barWidth = width / peaks.length;
-    const centerY = height / 2;
-    const maxBarHeight = height * 0.9; // 90% 높이 사용
+      // 배경 지우기
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, width, height);
 
-    // 웨이브폼 그리기
-    peaks.forEach((peak, index) => {
-      const x = index * barWidth;
-      const barHeight = Math.max(1, peak * maxBarHeight);
-      const isBeforeProgress = index / peaks.length <= progress;
+      const barWidth = width / peaks.length;
+      const centerY = height / 2;
+      const maxBarHeight = height * 0.9;
 
-      ctx.fillStyle = isBeforeProgress ? progressColor : color;
+      // 웨이브폼 그리기
+      peaks.forEach((peak, index) => {
+        const x = index * barWidth;
+        const barHeight = Math.max(1, peak * maxBarHeight);
+        const isBeforeProgress = index / peaks.length <= progress;
 
-      // 중앙에서 위아래로 그리기
-      ctx.fillRect(
-        x,
-        centerY - barHeight / 2,
-        Math.max(1, barWidth - 0.5),
-        barHeight
-      );
-    });
-  }, [peaks, width, height, color, backgroundColor, progress, progressColor]);
+        ctx.fillStyle = isBeforeProgress ? progressColor : color;
+
+        ctx.fillRect(
+          x,
+          centerY - barHeight / 2,
+          Math.max(1, barWidth - 0.5),
+          barHeight
+        );
+      });
+    };
+
+    drawWaveform();
+
+    // 컨테이너 크기 변경 감지
+    const observer = new ResizeObserver(drawWaveform);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [peaks, height, color, backgroundColor, progress, progressColor]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: `${width}px`,
-        height: `${height}px`,
-      }}
-    />
+    <div ref={containerRef} className="w-full h-full">
+      <canvas ref={canvasRef} />
+    </div>
   );
 }
 

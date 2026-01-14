@@ -320,7 +320,6 @@ export function TimelinePanel() {
               ) : waveformData && waveformData.peaks.length > 0 ? (
                 <Waveform
                   peaks={waveformData.peaks}
-                  width={Math.max(trackWidth, 100)}
                   height={60}
                   color="#4a5568"
                   progressColor="#d4a574"
