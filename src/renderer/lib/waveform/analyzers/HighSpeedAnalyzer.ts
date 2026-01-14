@@ -42,8 +42,9 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
         throw new Error('비디오 요소를 찾을 수 없습니다');
       }
 
-      const duration = this.video.duration;
-      if (!duration || !isFinite(duration) || duration <= 0) {
+      // 비디오 메타데이터 로드 대기
+      const duration = await this.waitForVideoDuration(this.video);
+      if (!duration || duration <= 0) {
         throw new Error('비디오 정보를 가져올 수 없습니다');
       }
 
@@ -101,6 +102,35 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
       const message = error instanceof Error ? error.message : '알 수 없는 오류';
       return { success: false, error: message };
     }
+  }
+
+  /**
+   * 비디오 duration 대기
+   */
+  private async waitForVideoDuration(video: HTMLVideoElement, maxRetries = 20): Promise<number> {
+    for (let i = 0; i < maxRetries; i++) {
+      if (this.isCancelled()) {
+        return 0;
+      }
+
+      // readyState >= 1 (HAVE_METADATA) 이고 duration이 유효한 경우
+      if (video.readyState >= 1 && video.duration && isFinite(video.duration) && video.duration > 0) {
+        return video.duration;
+      }
+
+      // loadedmetadata 이벤트 대기
+      await new Promise<void>((resolve) => {
+        const onLoaded = () => {
+          video.removeEventListener('loadedmetadata', onLoaded);
+          resolve();
+        };
+        video.addEventListener('loadedmetadata', onLoaded);
+        // 타임아웃 (이미 로드된 경우)
+        setTimeout(resolve, 500);
+      });
+    }
+
+    return video.duration || 0;
   }
 
   /**
