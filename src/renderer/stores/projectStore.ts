@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { Project, ProjectSettings, VideoInfo, AudioDescription, Caption, Speaker, Memo } from '../../shared/types';
+import type { Project, ProjectSettings, VideoInfo, AudioDescription, Caption, Speaker, Memo, WaveformCache } from '../../shared/types';
 import { DEFAULT_PROJECT_SETTINGS } from '../../shared/constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,6 +11,7 @@ export interface ProjectFileData {
   captions: Caption[];
   speakers: Speaker[];
   memos: Memo[];
+  waveformCache?: WaveformCache;
 }
 
 // 최근 프로젝트 정보
@@ -52,6 +53,7 @@ interface ProjectState {
   filePath: string | null;
   isDirty: boolean;
   lastSaved: Date | null;
+  waveformCache: WaveformCache | null;
 
   // 액션
   createProject: (title: string) => void;
@@ -62,6 +64,7 @@ interface ProjectState {
   setDirty: (dirty: boolean) => void;
   setVideo: (video: VideoInfo) => void;
   updateSettings: (settings: Partial<ProjectSettings>) => void;
+  setWaveformCache: (cache: WaveformCache | null) => void;
 }
 
 // 다른 스토어 가져오기 (순환 참조 방지를 위해 동적 import 사용)
@@ -79,6 +82,7 @@ export const useProjectStore = create<ProjectState>()(
     filePath: null,
     isDirty: false,
     lastSaved: null,
+    waveformCache: null,
 
     createProject: (title: string) => {
       const now = new Date().toISOString();
@@ -140,6 +144,11 @@ export const useProjectStore = create<ProjectState>()(
           );
         }
 
+        // 웨이브폼 캐시 로드
+        if (fileData.waveformCache) {
+          set({ waveformCache: fileData.waveformCache });
+        }
+
         // 최근 프로젝트에 추가
         addRecentProject(path, fileData.project.title);
       } catch (error) {
@@ -149,7 +158,7 @@ export const useProjectStore = create<ProjectState>()(
     },
 
     saveProject: async () => {
-      const { project, filePath } = get();
+      const { project, filePath, waveformCache } = get();
       if (!project) return;
 
       // 다른 스토어에서 데이터 가져오기
@@ -165,6 +174,7 @@ export const useProjectStore = create<ProjectState>()(
         captions,
         speakers,
         memos,
+        waveformCache: waveformCache ?? undefined,
       };
 
       const content = JSON.stringify(fileData, null, 2);
@@ -213,7 +223,7 @@ export const useProjectStore = create<ProjectState>()(
     },
 
     saveProjectAs: async () => {
-      const { project } = get();
+      const { project, waveformCache } = get();
       if (!project) return;
 
       // 다른 스토어에서 데이터 가져오기
@@ -229,6 +239,7 @@ export const useProjectStore = create<ProjectState>()(
         captions,
         speakers,
         memos,
+        waveformCache: waveformCache ?? undefined,
       };
 
       const content = JSON.stringify(fileData, null, 2);
@@ -279,6 +290,7 @@ export const useProjectStore = create<ProjectState>()(
         filePath: null,
         isDirty: false,
         lastSaved: null,
+        waveformCache: null,
       });
     },
 
@@ -307,6 +319,10 @@ export const useProjectStore = create<ProjectState>()(
         },
         isDirty: true,
       });
+    },
+
+    setWaveformCache: (cache: WaveformCache | null) => {
+      set({ waveformCache: cache });
     },
   }))
 );

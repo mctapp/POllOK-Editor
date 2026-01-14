@@ -28,12 +28,19 @@ function createWindow() {
     titleBarStyle: 'hidden',
     trafficLightPosition: { x: 12, y: 10 },
     backgroundColor: '#1a1a1a',
+    show: false, // 준비될 때까지 숨김
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
+  });
+
+  // 창이 준비되면 최대화하고 표시
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
+    mainWindow?.show();
   });
 
   // IPC 핸들러 설정

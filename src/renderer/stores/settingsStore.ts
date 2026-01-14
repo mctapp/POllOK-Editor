@@ -194,6 +194,19 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'accesson-settings',
+      // 기존 저장된 설정에 새 속성이 없을 때 기본값으로 병합
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SettingsState>;
+        return {
+          ...currentState,
+          ...persisted,
+          waveform: { ...DEFAULT_WAVEFORM, ...persisted.waveform },
+          timeline: { ...DEFAULT_TIMELINE, ...persisted.timeline },
+          script: { ...DEFAULT_SCRIPT, ...persisted.script },
+          overlay: { ...DEFAULT_OVERLAY, ...persisted.overlay },
+          shortcuts: { ...DEFAULT_SHORTCUTS, ...persisted.shortcuts },
+        };
+      },
     }
   )
 );

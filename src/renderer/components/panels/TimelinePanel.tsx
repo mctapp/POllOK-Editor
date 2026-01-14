@@ -5,16 +5,19 @@ import { useAudioWaveform } from '../../hooks';
 import { Waveform, WaveformLoading, WaveformEmpty, WaveformError } from '../Waveform';
 
 export function TimelinePanel() {
-  const { project } = useProjectStore();
+  const { project, waveformCache, setWaveformCache } = useProjectStore();
   const { source, currentFrame, duration, fps, seekToFrame } = useVideoStore();
   const { descriptions, updateDescription, selectDescription } = useADStore();
   const { captions, updateCaption, selectCaption } = useCCStore();
   const { timelineZoom, zoomIn, zoomOut } = useUIStore();
   const { waveform: waveformSettings, timeline: timelineSettings } = useSettingsStore();
 
-  // 오디오 웨이브폼 분석 (설정에서 샘플 수 가져옴)
+  // 오디오 웨이브폼 분석 (설정에서 샘플 수 가져옴, 캐시 지원)
   const { waveformData, isLoading: isWaveformLoading, status: waveformStatus, statusMessage, progress: waveformProgress } = useAudioWaveform(source, {
     samples: waveformSettings.samples,
+    cachedData: waveformCache,
+    videoPath: project?.video?.path ?? null,
+    onCacheUpdate: setWaveformCache,
   });
 
   // 트랙 컨테이너 너비 추적

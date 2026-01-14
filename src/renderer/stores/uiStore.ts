@@ -36,7 +36,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   activeTab: 'ad',
   openDialog: null,
-  leftPanelWidth: 700, // 기본 비디오 패널 너비 (넓게 설정)
+  leftPanelWidth: 70, // 기본 비디오 패널 너비 (70%)
   scriptPanelWidth: 400,
   timelineHeight: 200,
   isTimelineCollapsed: false,
@@ -50,7 +50,7 @@ export const useUIStore = create<UIState>((set) => ({
   setOpenDialog: (openDialog) => set({ openDialog }),
 
   setLeftPanelWidth: (width) =>
-    set({ leftPanelWidth: Math.max(400, Math.min(1200, width)) }),
+    set({ leftPanelWidth: Math.max(40, Math.min(85, width)) }), // 40% ~ 85%
 
   setScriptPanelWidth: (width) =>
     set({ scriptPanelWidth: Math.max(280, Math.min(600, width)) }),

@@ -59,7 +59,7 @@ export const AUTO_SAVE_INTERVAL = 30000;
 
 // AD 타입 옵션
 export const AD_TYPE_OPTIONS = [
-  { value: 'scene', label: '장면 설명' },
+  { value: 'scene', label: '음성해설' },
   { value: 'character', label: '인물 등장' },
   { value: 'text', label: '자막/텍스트' },
   { value: 'action', label: '동작 설명' },

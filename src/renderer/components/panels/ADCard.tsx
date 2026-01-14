@@ -404,7 +404,7 @@ export function ADCard({ description }: ADCardProps) {
       >
         {/* 헤더 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+          className={`flex items-center justify-between overflow-hidden transition-all duration-300 ease-out ${
             isActive ? 'opacity-100 max-h-12 mb-2' : 'opacity-0 max-h-0 mb-0'
           }`}
         >
@@ -498,7 +498,7 @@ export function ADCard({ description }: ADCardProps) {
               </div>
             )}
           </div>
-          <span className="text-xs px-2 py-0.5 bg-brand-brown/30 rounded text-brand-brown">
+          <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">
             {typeLabel}
           </span>
         </div>
@@ -527,7 +527,7 @@ export function ADCard({ description }: ADCardProps) {
 
         {/* 푸터 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+          className={`flex items-center justify-between overflow-hidden transition-all duration-300 ease-out ${
             isActive ? 'opacity-100 max-h-12 mt-2' : 'opacity-0 max-h-0 mt-0'
           }`}
         >

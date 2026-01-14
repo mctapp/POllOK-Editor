@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { StatusBar } from './StatusBar';
@@ -9,6 +9,7 @@ import { TimelinePanel } from '../panels/TimelinePanel';
 import { useUIStore } from '../../stores';
 
 export function MainLayout() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const {
     leftPanelWidth,
     timelineHeight,
@@ -19,7 +20,10 @@ export function MainLayout() {
 
   const handleLeftResize = useCallback(
     (delta: number) => {
-      setLeftPanelWidth(leftPanelWidth + delta);
+      // 컨테이너 너비를 기준으로 퍼센트 변환
+      const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+      const deltaPercent = (delta / containerWidth) * 100;
+      setLeftPanelWidth(leftPanelWidth + deltaPercent);
     },
     [leftPanelWidth, setLeftPanelWidth]
   );
@@ -42,17 +46,17 @@ export function MainLayout() {
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 상단: 비디오 + 스크립트 패널 */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* 왼쪽: 비디오 플레이어 */}
-          <div style={{ width: leftPanelWidth }} className="flex-shrink-0 overflow-hidden">
+        <div ref={containerRef} className="flex-1 flex overflow-hidden">
+          {/* 왼쪽: 비디오 플레이어 (70%) */}
+          <div style={{ flexBasis: `${leftPanelWidth}%`, minWidth: '40%', maxWidth: '85%' }} className="flex-shrink-0 overflow-hidden">
             <VideoPanel />
           </div>
 
           {/* 수직 분할선 */}
           <PanelSplitter direction="vertical" onResize={handleLeftResize} />
 
-          {/* 오른쪽: 스크립트 에디터 */}
-          <div className="flex-1 overflow-hidden">
+          {/* 오른쪽: 스크립트 에디터 (30%) */}
+          <div className="flex-1 overflow-hidden" style={{ minWidth: '15%' }}>
             <ScriptPanel />
           </div>
         </div>

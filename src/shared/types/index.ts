@@ -98,6 +98,15 @@ export interface Speaker {
   color: string;
 }
 
+// Waveform Cache Types
+export interface WaveformCache {
+  peaks: number[];
+  duration: number;
+  samples: number;
+  videoPath: string;
+  analyzedAt: string;
+}
+
 // IPC Channels
 export const IpcChannels = {
   // Window

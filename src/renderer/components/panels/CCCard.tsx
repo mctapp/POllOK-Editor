@@ -237,7 +237,7 @@ export function CCCard({ caption }: CCCardProps) {
       >
         {/* 헤더 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+          className={`flex items-center justify-between overflow-hidden transition-all duration-300 ease-out ${
             isActive ? 'opacity-100 max-h-12 mb-2' : 'opacity-0 max-h-0 mb-0'
           }`}
         >
@@ -334,7 +334,7 @@ export function CCCard({ caption }: CCCardProps) {
 
         {/* 푸터 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+          className={`flex items-center justify-between overflow-hidden transition-all duration-300 ease-out ${
             isActive ? 'opacity-100 max-h-12 mt-2' : 'opacity-0 max-h-0 mt-0'
           }`}
         >
