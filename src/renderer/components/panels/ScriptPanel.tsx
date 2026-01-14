@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, Focus, CheckSquare, StickyNote } from 'lucide-react';
+import { Plus, Search, Focus, CheckSquare, StickyNote, AudioLines, Subtitles } from 'lucide-react';
 import { useUIStore, useADStore, useCCStore, useVideoStore, useProjectStore, useMemoStore } from '../../stores';
 import { ADCard } from './ADCard';
 import { CCCard } from './CCCard';
@@ -97,26 +97,28 @@ export function ScriptPanel() {
       {/* 탭 헤더 */}
       <div className="flex items-center border-b border-dark-border bg-dark-surface">
         <button
-          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
             activeTab === 'ad'
               ? 'text-brand-brown'
               : 'text-gray-400 hover:text-gray-200'
           }`}
           onClick={() => setActiveTab('ad')}
         >
+          <AudioLines className="w-4 h-4" />
           AD ({descriptions.length})
           {activeTab === 'ad' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-brown" />
           )}
         </button>
         <button
-          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
             activeTab === 'cc'
               ? 'text-accent-green'
               : 'text-gray-400 hover:text-gray-200'
           }`}
           onClick={() => setActiveTab('cc')}
         >
+          <Subtitles className="w-4 h-4" />
           CC ({captions.length})
           {activeTab === 'cc' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-green" />
