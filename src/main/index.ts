@@ -1,5 +1,6 @@
-import { app, BrowserWindow, shell, protocol, net } from 'electron';
+import { app, BrowserWindow, shell, protocol } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { setupIpcHandlers } from './ipc';
 
 let mainWindow: BrowserWindow | null = null;
@@ -66,12 +67,115 @@ function createWindow() {
   });
 }
 
+// MIME 타입 결정 함수
+function getMimeType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.ogg': 'video/ogg',
+    '.mov': 'video/quicktime',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.flac': 'audio/flac',
+    '.aac': 'audio/aac',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+}
+
 // 앱 준비 완료
 app.whenReady().then(() => {
-  // 커스텀 프로토콜 핸들러 등록
-  protocol.handle('local-file', (request) => {
+  // 커스텀 프로토콜 핸들러 등록 - Range 요청 지원
+  protocol.handle('local-file', async (request) => {
     const filePath = decodeURIComponent(request.url.replace('local-file://', ''));
-    return net.fetch(`file://${filePath}`);
+
+    try {
+      const stat = fs.statSync(filePath);
+      const fileSize = stat.size;
+      const mimeType = getMimeType(filePath);
+
+      // Range 헤더 확인
+      const rangeHeader = request.headers.get('range');
+
+      if (rangeHeader) {
+        // Range 요청 처리 (예: "bytes=0-1023")
+        const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+        if (match) {
+          const start = match[1] ? parseInt(match[1], 10) : 0;
+          const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
+          const chunkSize = end - start + 1;
+
+          // 파일 스트림 생성
+          const stream = fs.createReadStream(filePath, { start, end });
+
+          // Node.js ReadStream을 Web ReadableStream으로 변환
+          const webStream = new ReadableStream({
+            start(controller) {
+              stream.on('data', (chunk: Buffer) => {
+                controller.enqueue(new Uint8Array(chunk));
+              });
+              stream.on('end', () => {
+                controller.close();
+              });
+              stream.on('error', (err) => {
+                controller.error(err);
+              });
+            },
+            cancel() {
+              stream.destroy();
+            },
+          });
+
+          return new Response(webStream, {
+            status: 206,
+            headers: {
+              'Content-Type': mimeType,
+              'Content-Length': chunkSize.toString(),
+              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Accept-Ranges': 'bytes',
+            },
+          });
+        }
+      }
+
+      // Range 요청이 없는 경우 전체 파일 반환
+      const stream = fs.createReadStream(filePath);
+      const webStream = new ReadableStream({
+        start(controller) {
+          stream.on('data', (chunk: Buffer) => {
+            controller.enqueue(new Uint8Array(chunk));
+          });
+          stream.on('end', () => {
+            controller.close();
+          });
+          stream.on('error', (err) => {
+            controller.error(err);
+          });
+        },
+        cancel() {
+          stream.destroy();
+        },
+      });
+
+      return new Response(webStream, {
+        status: 200,
+        headers: {
+          'Content-Type': mimeType,
+          'Content-Length': fileSize.toString(),
+          'Accept-Ranges': 'bytes',
+        },
+      });
+    } catch (error) {
+      console.error('Protocol handler error:', error);
+      return new Response('File not found', { status: 404 });
+    }
   });
 
   createWindow();
