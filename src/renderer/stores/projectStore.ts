@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { Project, ProjectSettings, VideoInfo, AudioDescription, Caption, Speaker, Memo, WaveformCache } from '../../shared/types';
+import type { Project, ProjectSettings, VideoInfo, AudioDescription, Caption, Speaker, Memo, WaveformCache, Feedback } from '../../shared/types';
 import { DEFAULT_PROJECT_SETTINGS } from '../../shared/constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,6 +11,7 @@ export interface ProjectFileData {
   captions: Caption[];
   speakers: Speaker[];
   memos: Memo[];
+  feedbacks: Feedback[];
   waveformCache?: WaveformCache;
 }
 
@@ -73,7 +74,8 @@ const getOtherStores = async () => {
   const { useCCStore } = await import('./ccStore');
   const { useMemoStore } = await import('./memoStore');
   const { useVideoStore } = await import('./videoStore');
-  return { useADStore, useCCStore, useMemoStore, useVideoStore };
+  const { useFeedbackStore } = await import('./feedbackStore');
+  return { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore };
 };
 
 export const useProjectStore = create<ProjectState>()(
@@ -131,6 +133,9 @@ export const useProjectStore = create<ProjectState>()(
         if (fileData.memos) {
           useMemoStore.getState().setMemos(fileData.memos);
         }
+        if (fileData.feedbacks) {
+          useFeedbackStore.getState().setFeedbacks(fileData.feedbacks);
+        }
 
         // 비디오 로드 (프로젝트에 비디오 정보가 있는 경우)
         if (fileData.project.video?.path) {
@@ -162,11 +167,12 @@ export const useProjectStore = create<ProjectState>()(
       if (!project) return;
 
       // 다른 스토어에서 데이터 가져오기
-      const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+      const { useADStore, useCCStore, useMemoStore, useFeedbackStore } = await getOtherStores();
       const descriptions = useADStore.getState().descriptions;
       const captions = useCCStore.getState().captions;
       const speakers = useCCStore.getState().speakers;
       const memos = useMemoStore.getState().memos;
+      const feedbacks = useFeedbackStore.getState().feedbacks;
 
       const fileData: ProjectFileData = {
         project: { ...project, modifiedAt: new Date().toISOString() },
@@ -174,6 +180,7 @@ export const useProjectStore = create<ProjectState>()(
         captions,
         speakers,
         memos,
+        feedbacks,
         waveformCache: waveformCache ?? undefined,
       };
 
@@ -227,11 +234,12 @@ export const useProjectStore = create<ProjectState>()(
       if (!project) return;
 
       // 다른 스토어에서 데이터 가져오기
-      const { useADStore, useCCStore, useMemoStore } = await getOtherStores();
+      const { useADStore, useCCStore, useMemoStore, useFeedbackStore } = await getOtherStores();
       const descriptions = useADStore.getState().descriptions;
       const captions = useCCStore.getState().captions;
       const speakers = useCCStore.getState().speakers;
       const memos = useMemoStore.getState().memos;
+      const feedbacks = useFeedbackStore.getState().feedbacks;
 
       const fileData: ProjectFileData = {
         project,
@@ -239,6 +247,7 @@ export const useProjectStore = create<ProjectState>()(
         captions,
         speakers,
         memos,
+        feedbacks,
         waveformCache: waveformCache ?? undefined,
       };
 
@@ -279,11 +288,12 @@ export const useProjectStore = create<ProjectState>()(
 
     closeProject: async () => {
       // 다른 스토어 초기화
-      const { useADStore, useCCStore, useMemoStore, useVideoStore } = await getOtherStores();
+      const { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore } = await getOtherStores();
       useADStore.getState().reset();
       useCCStore.getState().reset();
       useMemoStore.getState().reset();
       useVideoStore.getState().reset();
+      useFeedbackStore.getState().reset();
 
       set({
         project: null,

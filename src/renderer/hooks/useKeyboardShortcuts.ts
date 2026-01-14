@@ -21,7 +21,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
 
   const { addDescription } = useADStore();
   const { addCaption } = useCCStore();
-  const { zoomIn, zoomOut } = useUIStore();
+  const { zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel } = useUIStore();
   const { shortcuts } = useSettingsStore();
 
   /**
@@ -179,8 +179,37 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         clearPoints();
         return;
       }
+
+      // 탭 전환 (Ctrl/Cmd + 1, 2, 3)
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const hasModKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (hasModKey && e.key === '1') {
+        e.preventDefault();
+        setActiveTab('ad');
+        return;
+      }
+
+      if (hasModKey && e.key === '2') {
+        e.preventDefault();
+        setActiveTab('cc');
+        return;
+      }
+
+      if (hasModKey && e.key === '3') {
+        e.preventDefault();
+        setActiveTab('memo');
+        return;
+      }
+
+      // 피드백 패널 토글 (Ctrl/Cmd + 4)
+      if (hasModKey && e.key === '4') {
+        e.preventDefault();
+        toggleFeedbackPanel();
+        return;
+      }
     },
-    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame, zoomIn, zoomOut, shortcuts, matchesShortcut]
+    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame, zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel, shortcuts, matchesShortcut]
   );
 
   useEffect(() => {

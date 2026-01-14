@@ -498,7 +498,7 @@ export function ADCard({ description }: ADCardProps) {
               </div>
             )}
           </div>
-          <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">
+          <span className="text-xs px-2 py-0.5 rounded text-gray-400">
             {typeLabel}
           </span>
         </div>

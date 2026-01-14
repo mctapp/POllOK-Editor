@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FolderOpen, Clock, FilePlus } from 'lucide-react';
+import { FolderOpen, Clock, FilePlus, PenLine, ClipboardCheck } from 'lucide-react';
 import { useProjectStore, getRecentProjects, type RecentProject } from '../stores/projectStore';
+import { useUIStore } from '../stores/uiStore';
+import type { UserMode } from '../../shared/types';
 
 export function StartScreen() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const { openProject, createProject } = useProjectStore();
+  const { userMode, setUserMode } = useUIStore();
 
   useEffect(() => {
     setRecentProjects(getRecentProjects());
@@ -107,6 +110,35 @@ export function StartScreen() {
                 새 프로젝트
               </button>
             </div>
+
+            {/* 작업 모드 선택 */}
+            <div className="mt-6 pt-6 border-t border-dark-border">
+              <p className="text-sm text-gray-500 mb-3">작업 모드</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setUserMode('writer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
+                    userMode === 'writer'
+                      ? 'bg-brand-brown text-white'
+                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <PenLine className="w-4 h-4" />
+                  작가 모드
+                </button>
+                <button
+                  onClick={() => setUserMode('reviewer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
+                    userMode === 'reviewer'
+                      ? 'bg-accent-blue text-white'
+                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <ClipboardCheck className="w-4 h-4" />
+                  감수자 모드
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           /* 최근 프로젝트가 없는 경우 */
@@ -125,6 +157,35 @@ export function StartScreen() {
               <FolderOpen className="w-5 h-5" />
               기존 프로젝트 열기
             </button>
+
+            {/* 작업 모드 선택 */}
+            <div className="mt-6 pt-6 border-t border-dark-border">
+              <p className="text-sm text-gray-500 mb-3">작업 모드</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setUserMode('writer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
+                    userMode === 'writer'
+                      ? 'bg-brand-brown text-white'
+                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <PenLine className="w-4 h-4" />
+                  작가 모드
+                </button>
+                <button
+                  onClick={() => setUserMode('reviewer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
+                    userMode === 'reviewer'
+                      ? 'bg-accent-blue text-white'
+                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <ClipboardCheck className="w-4 h-4" />
+                  감수자 모드
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
