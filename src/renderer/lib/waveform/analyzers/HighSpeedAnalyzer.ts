@@ -77,24 +77,24 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
   }
 
   /**
-   * 숨겨진 오디오 요소로 분석
+   * 숨겨진 비디오 요소로 분석
    */
   private async analyzeWithHiddenAudio(
     source: string,
     duration: number,
     targetSamples: number
   ): Promise<number[]> {
-    // 숨겨진 오디오 요소 생성
-    const audio = document.createElement('audio');
-    audio.src = source;
-    audio.preload = 'auto';
-    audio.volume = 0;
-    audio.style.display = 'none';
-    document.body.appendChild(audio);
+    // 숨겨진 비디오 요소 생성 (audio 요소는 비디오 파일 재생 불가)
+    const video = document.createElement('video');
+    video.src = source;
+    video.preload = 'auto';
+    video.muted = true; // 소리 안 나게
+    video.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+    document.body.appendChild(video);
 
     try {
-      // 오디오 로드 대기
-      await this.waitForAudioReady(audio);
+      // 비디오 로드 대기
+      await this.waitForVideoReady(video);
 
       if (this.isCancelled()) {
         return [];
@@ -106,18 +106,22 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.3;
 
-      const sourceNode = audioContext.createMediaElementSource(audio);
+      const sourceNode = audioContext.createMediaElementSource(video);
       const gainNode = audioContext.createGain();
       gainNode.gain.value = 0; // 음소거
 
       sourceNode.connect(analyser);
       analyser.connect(gainNode);
-      gainNode.connect(audioContext.destination); // 데이터 흐름을 위해 destination 연결 필요
+      gainNode.connect(audioContext.destination);
+
+      // muted 해제해야 MediaElementSource가 오디오 데이터를 받음
+      video.muted = false;
+      video.volume = 0;
 
       const peaks: number[] = [];
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       const timeStep = duration / targetSamples;
-      const chunkSize = 10; // 한 번에 처리할 샘플 수
+      const chunkSize = 10;
 
       this.reportProgress(10, '오디오 분석 중...');
 
@@ -126,29 +130,27 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
           break;
         }
 
-        // 청크 처리
         const chunkEnd = Math.min(i + chunkSize, targetSamples);
         for (let j = i; j < chunkEnd; j++) {
           const targetTime = j * timeStep;
 
-          // 해당 위치로 시크
-          audio.currentTime = targetTime;
+          video.currentTime = targetTime;
 
           // seeked 이벤트 대기
           await new Promise<void>((resolve) => {
             const onSeeked = () => {
-              audio.removeEventListener('seeked', onSeeked);
+              video.removeEventListener('seeked', onSeeked);
               resolve();
             };
-            audio.addEventListener('seeked', onSeeked);
-            setTimeout(resolve, 50); // 타임아웃
+            video.addEventListener('seeked', onSeeked);
+            setTimeout(resolve, 100);
           });
 
           // 짧게 재생하여 오디오 버퍼 채우기
           try {
-            await audio.play();
-            await this.yieldToMain(30); // 30ms 재생
-            audio.pause();
+            await video.play();
+            await this.yieldToMain(50);
+            video.pause();
           } catch {
             // 재생 실패 시 무시
           }
@@ -164,9 +166,8 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
           peaks.push(Math.min(1, rms / 80));
         }
 
-        // UI 업데이트 및 메인 스레드 양보
         const progress = Math.floor((chunkEnd / targetSamples) * 90) + 10;
-        const remaining = Math.ceil((targetSamples - chunkEnd) * 0.08);
+        const remaining = Math.ceil((targetSamples - chunkEnd) * 0.15);
         this.reportProgress(progress, `오디오 분석 중... (약 ${remaining}초 남음)`);
 
         await this.yieldToMain(0);
@@ -180,41 +181,39 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
 
       return peaks;
     } finally {
-      // 오디오 요소 제거
-      audio.pause();
-      audio.src = '';
-      audio.remove();
+      video.pause();
+      video.src = '';
+      video.remove();
     }
   }
 
   /**
-   * 오디오 로드 대기
+   * 비디오 로드 대기
    */
-  private async waitForAudioReady(audio: HTMLAudioElement): Promise<void> {
+  private async waitForVideoReady(video: HTMLVideoElement): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('오디오 로드 시간 초과'));
+        reject(new Error('비디오 로드 시간 초과'));
       }, 30000);
 
       const onCanPlay = () => {
         clearTimeout(timeout);
-        audio.removeEventListener('canplaythrough', onCanPlay);
-        audio.removeEventListener('error', onError);
+        video.removeEventListener('canplaythrough', onCanPlay);
+        video.removeEventListener('error', onError);
         resolve();
       };
 
       const onError = () => {
         clearTimeout(timeout);
-        audio.removeEventListener('canplaythrough', onCanPlay);
-        audio.removeEventListener('error', onError);
-        reject(new Error('오디오 로드 실패'));
+        video.removeEventListener('canplaythrough', onCanPlay);
+        video.removeEventListener('error', onError);
+        reject(new Error('비디오 로드 실패'));
       };
 
-      audio.addEventListener('canplaythrough', onCanPlay);
-      audio.addEventListener('error', onError);
+      video.addEventListener('canplaythrough', onCanPlay);
+      video.addEventListener('error', onError);
 
-      // 이미 로드된 경우
-      if (audio.readyState >= 3) {
+      if (video.readyState >= 3) {
         clearTimeout(timeout);
         resolve();
       }
