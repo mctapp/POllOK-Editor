@@ -11,9 +11,9 @@ export function TimelinePanel() {
   const { captions, updateCaption, selectCaption } = useCCStore();
   const { timelineZoom, zoomIn, zoomOut } = useUIStore();
 
-  // 오디오 웨이브폼 분석
+  // 오디오 웨이브폼 분석 (2000 샘플로 더 디테일하게)
   const { waveformData, isLoading: isWaveformLoading, status: waveformStatus, statusMessage, progress: waveformProgress } = useAudioWaveform(source, {
-    samples: 1000,
+    samples: 2000,
   });
 
   // 트랙 컨테이너 너비 추적
@@ -312,21 +312,20 @@ export function TimelinePanel() {
             {/* 오디오 파형 영역 */}
             <div className="h-1/3 relative overflow-hidden">
               {!source ? (
-                <WaveformEmpty height={60} message="영상을 불러오면 오디오 파형이 표시됩니다" />
+                <WaveformEmpty message="영상을 불러오면 오디오 파형이 표시됩니다" />
               ) : waveformStatus === 'waiting' || waveformStatus === 'analyzing' ? (
-                <WaveformLoading height={60} message={statusMessage} progress={waveformProgress} />
+                <WaveformLoading message={statusMessage} progress={waveformProgress} />
               ) : waveformStatus === 'error' ? (
-                <WaveformError height={60} message={statusMessage} />
+                <WaveformError message={statusMessage} />
               ) : waveformData && waveformData.peaks.length > 0 ? (
                 <Waveform
                   peaks={waveformData.peaks}
-                  height={60}
                   color="#4a5568"
                   progressColor="#d4a574"
                   progress={duration > 0 ? currentFrame / duration : 0}
                 />
               ) : (
-                <WaveformEmpty height={60} />
+                <WaveformEmpty />
               )}
             </div>
 

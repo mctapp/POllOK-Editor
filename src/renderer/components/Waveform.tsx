@@ -2,7 +2,6 @@ import { useRef, useEffect } from 'react';
 
 interface WaveformProps {
   peaks: number[];
-  height: number;
   color?: string;
   backgroundColor?: string;
   progress?: number; // 0 ~ 1 (현재 재생 위치)
@@ -11,7 +10,6 @@ interface WaveformProps {
 
 export function Waveform({
   peaks,
-  height,
   color = '#4a5568',
   backgroundColor = 'transparent',
   progress = 0,
@@ -28,7 +26,8 @@ export function Waveform({
 
     const drawWaveform = () => {
       const width = container.offsetWidth;
-      if (width === 0) return;
+      const height = container.offsetHeight;
+      if (width === 0 || height === 0) return;
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -75,7 +74,7 @@ export function Waveform({
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [peaks, height, color, backgroundColor, progress, progressColor]);
+  }, [peaks, color, backgroundColor, progress, progressColor]);
 
   return (
     <div ref={containerRef} className="w-full h-full">
@@ -86,18 +85,13 @@ export function Waveform({
 
 // 로딩 상태 컴포넌트
 interface WaveformLoadingProps {
-  width?: number;
-  height: number;
   message?: string;
   progress?: number;
 }
 
-export function WaveformLoading({ height, message, progress }: WaveformLoadingProps) {
+export function WaveformLoading({ message, progress }: WaveformLoadingProps) {
   return (
-    <div
-      style={{ height }}
-      className="w-full flex items-center justify-center bg-dark-surface/30"
-    >
+    <div className="w-full h-full flex items-center justify-center bg-dark-surface/30">
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-0.5">
           <div className="w-1 h-3 bg-gray-600 animate-pulse" style={{ animationDelay: '0ms' }} />
@@ -117,17 +111,12 @@ export function WaveformLoading({ height, message, progress }: WaveformLoadingPr
 
 // 에러 상태 컴포넌트
 interface WaveformErrorProps {
-  width?: number;
-  height: number;
   message?: string;
 }
 
-export function WaveformError({ height, message }: WaveformErrorProps) {
+export function WaveformError({ message }: WaveformErrorProps) {
   return (
-    <div
-      style={{ height }}
-      className="w-full flex items-center justify-center bg-dark-surface/30"
-    >
+    <div className="w-full h-full flex items-center justify-center bg-dark-surface/30">
       <span className="text-xs text-gray-500">{message || '웨이브폼을 불러올 수 없습니다'}</span>
     </div>
   );
@@ -135,17 +124,12 @@ export function WaveformError({ height, message }: WaveformErrorProps) {
 
 // 빈 상태 컴포넌트
 interface WaveformEmptyProps {
-  width?: number;
-  height: number;
   message?: string;
 }
 
-export function WaveformEmpty({ height, message }: WaveformEmptyProps) {
+export function WaveformEmpty({ message }: WaveformEmptyProps) {
   return (
-    <div
-      style={{ height }}
-      className="w-full flex items-center justify-center bg-dark-surface/20"
-    >
+    <div className="w-full h-full flex items-center justify-center bg-dark-surface/20">
       <span className="text-xs text-gray-600">{message || '영상을 불러오면 오디오 파형이 표시됩니다'}</span>
     </div>
   );
