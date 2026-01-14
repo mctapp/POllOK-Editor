@@ -148,7 +148,10 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
           sum += dataArray[k] * dataArray[k];
         }
         const rms = Math.sqrt(sum / dataArray.length);
-        peaks.push(Math.min(1, rms / 80));
+        // 제곱근으로 대비 강화 (조용한 구간과 소리 있는 구간 차이 극대화)
+        const normalized = Math.min(1, rms / 60);
+        const enhanced = Math.pow(normalized, 0.6); // 0.6 제곱으로 중간값 부스트
+        peaks.push(Math.max(0.02, enhanced)); // 최소값 보장
 
         // 진행률 업데이트
         const progress = Math.min(99, Math.floor((peaks.length / actualSamples) * 90) + 10);

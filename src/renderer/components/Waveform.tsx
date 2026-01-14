@@ -47,12 +47,14 @@ export function Waveform({
 
       const barWidth = width / peaks.length;
       const centerY = height / 2;
-      const maxBarHeight = height * 0.9;
+      const maxBarHeight = height * 0.95; // 95% 높이 사용
 
       // 웨이브폼 그리기
       peaks.forEach((peak, index) => {
         const x = index * barWidth;
-        const barHeight = Math.max(1, peak * maxBarHeight);
+        // 대비 강화: 낮은 값은 더 낮게, 높은 값은 더 높게
+        const enhancedPeak = Math.pow(peak, 0.7);
+        const barHeight = Math.max(2, enhancedPeak * maxBarHeight);
         const isBeforeProgress = index / peaks.length <= progress;
 
         ctx.fillStyle = isBeforeProgress ? progressColor : color;
