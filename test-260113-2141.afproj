@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "id": "838b086d-895f-4049-883d-96aca3a7181a",
+  "title": "새 프로젝트",
+  "createdAt": "2026-01-13T12:37:24.879Z",
+  "modifiedAt": "2026-01-13T12:41:01.746Z",
+  "video": {
+    "path": "/Users/welive/Sites/POllOK-Editor/screener-converted.mp4",
+    "filename": "screener-converted.mp4",
+    "hash": "",
+    "duration": 1578.965,
+    "durationFrames": 37895,
+    "fps": 24,
+    "width": 1280,
+    "height": 720,
+    "resolution": "1280x720"
+  },
+  "settings": {
+    "timecodeFormat": "smpte",
+    "defaultAdVoice": "default",
+    "ccMaxCharsPerLine": 42,
+    "ccMaxLines": 2
+  }
+}
