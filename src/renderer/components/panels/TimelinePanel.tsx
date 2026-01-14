@@ -311,23 +311,23 @@ export function TimelinePanel() {
 
             {/* 오디오 파형 영역 */}
             <div className="h-1/3 relative overflow-hidden">
-              {waveformStatus === 'idle' && !source ? (
+              {!source ? (
                 <WaveformEmpty height={60} message="영상을 불러오면 오디오 파형이 표시됩니다" />
               ) : waveformStatus === 'waiting' || waveformStatus === 'analyzing' ? (
                 <WaveformLoading height={60} message={statusMessage} progress={waveformProgress} />
               ) : waveformStatus === 'error' ? (
                 <WaveformError height={60} message={statusMessage} />
-              ) : waveformData && waveformData.peaks.length > 0 && trackWidth > 0 ? (
+              ) : waveformData && waveformData.peaks.length > 0 ? (
                 <Waveform
                   peaks={waveformData.peaks}
-                  width={trackWidth}
+                  width={Math.max(trackWidth, 100)}
                   height={60}
                   color="#4a5568"
                   progressColor="#d4a574"
                   progress={duration > 0 ? currentFrame / duration : 0}
                 />
               ) : (
-                <WaveformEmpty height={60} message={source ? '파형 생성 대기 중...' : '영상을 불러오면 오디오 파형이 표시됩니다'} />
+                <WaveformEmpty height={60} />
               )}
             </div>
 
