@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Volume2, Clock, CheckSquare, Square } from 'lucide-react';
+import { Pencil, Trash2, Volume2, Clock, CheckSquare, Square, History, RotateCcw } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
 import { useADStore, useVideoStore } from '../../stores';
 import { AD_TYPE_OPTIONS } from '../../../shared/constants';
@@ -10,10 +10,12 @@ interface ADCardProps {
 
 export function ADCard({ description }: ADCardProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const timecodeContainerRef = useRef<HTMLDivElement>(null);
   const [editText, setEditText] = useState(description.text);
   const [editTcIn, setEditTcIn] = useState('');
   const [editTcOut, setEditTcOut] = useState('');
   const [isEditingTimecode, setIsEditingTimecode] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
 
   const {
     selectedIds,
@@ -109,6 +111,15 @@ export function ADCard({ description }: ADCardProps) {
     setIsEditingTimecode(false);
   };
 
+  const handleTimecodeBlur = (e: React.FocusEvent) => {
+    // 다른 타임코드 입력란으로 포커스가 이동하는 경우 닫지 않음
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (timecodeContainerRef.current?.contains(relatedTarget)) {
+      return;
+    }
+    handleTimecodesSave();
+  };
+
   const handleTimecodeKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -116,6 +127,30 @@ export function ADCard({ description }: ADCardProps) {
     } else if (e.key === 'Escape') {
       setIsEditingTimecode(false);
     }
+  };
+
+  // 버전 저장
+  const handleSaveVersion = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!description.text.trim()) return;
+
+    const newVersion = {
+      text: description.text,
+      savedAt: new Date().toISOString(),
+    };
+
+    const versions = description.versions || [];
+    updateDescription(description.id, {
+      versions: [...versions, newVersion],
+    });
+  };
+
+  // 버전 복원
+  const handleRestoreVersion = (e: React.MouseEvent, versionText: string) => {
+    e.stopPropagation();
+    updateDescription(description.id, { text: versionText });
+    setEditText(versionText);
+    setShowVersions(false);
   };
 
   const handleToggleReview = (e: React.MouseEvent) => {
@@ -154,13 +189,17 @@ export function ADCard({ description }: ADCardProps) {
           </button>
 
           {isEditingTimecode ? (
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <div
+              ref={timecodeContainerRef}
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <input
                 type="text"
                 value={editTcIn}
                 onChange={(e) => setEditTcIn(e.target.value)}
                 onKeyDown={handleTimecodeKeyDown}
-                onBlur={handleTimecodesSave}
+                onBlur={handleTimecodeBlur}
                 className="w-24 font-timecode text-xs bg-dark-bg border border-brand-brown rounded px-1 py-0.5 text-white focus:outline-none"
                 autoFocus
               />
@@ -170,7 +209,7 @@ export function ADCard({ description }: ADCardProps) {
                 value={editTcOut}
                 onChange={(e) => setEditTcOut(e.target.value)}
                 onKeyDown={handleTimecodeKeyDown}
-                onBlur={handleTimecodesSave}
+                onBlur={handleTimecodeBlur}
                 className="w-24 font-timecode text-xs bg-dark-bg border border-brand-brown rounded px-1 py-0.5 text-white focus:outline-none"
               />
             </div>
@@ -251,6 +290,72 @@ export function ADCard({ description }: ADCardProps) {
           >
             <Volume2 className="w-4 h-4" />
           </button>
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowVersions(!showVersions);
+              }}
+              className={`p-1.5 transition-colors ${
+                description.versions?.length
+                  ? 'text-accent-yellow hover:text-accent-yellow/80'
+                  : 'text-gray-500 hover:text-white'
+              }`}
+              title={`버전 기록 ${description.versions?.length ? `(${description.versions.length})` : ''}`}
+            >
+              <History className="w-4 h-4" />
+            </button>
+            {showVersions && (
+              <div
+                className="absolute bottom-full right-0 mb-1 w-64 bg-dark-bg border border-dark-border rounded-lg shadow-xl z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-2 border-b border-dark-border flex items-center justify-between">
+                  <span className="text-xs text-gray-400">버전 기록</span>
+                  <button
+                    onClick={handleSaveVersion}
+                    className="text-xs px-2 py-0.5 bg-brand-brown hover:bg-brand-brown/80 text-white rounded transition-colors"
+                    disabled={!description.text.trim()}
+                  >
+                    현재 버전 저장
+                  </button>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {description.versions?.length ? (
+                    description.versions.map((version, index) => (
+                      <div
+                        key={index}
+                        className="p-2 hover:bg-dark-surface border-b border-dark-border/50 last:border-0"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-500">
+                            {new Date(version.savedAt).toLocaleString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          <button
+                            onClick={(e) => handleRestoreVersion(e, version.text)}
+                            className="text-xs text-accent-yellow hover:text-white flex items-center gap-0.5"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            복원
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-300 line-clamp-2">{version.text}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="p-3 text-xs text-gray-500 text-center">
+                      저장된 버전이 없습니다
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
