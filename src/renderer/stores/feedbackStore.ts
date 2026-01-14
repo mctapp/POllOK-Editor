@@ -1,44 +1,42 @@
 import { create } from 'zustand';
-import type { Feedback, FeedbackCategory, FeedbackStatus } from '../../shared/types';
 import { v4 as uuidv4 } from 'uuid';
+import type { Feedback, FeedbackStatus } from '../../shared/types';
 
 interface FeedbackState {
-  // 상태
   feedbacks: Feedback[];
-  filter: 'all' | 'pending' | 'in_progress' | 'resolved';
-  selectedCardId: string | null;
+  expandedIds: Set<string>;
 
-  // 액션
-  addFeedback: (feedback: Partial<Feedback>) => string;
+  // Actions
+  addFeedback: (cardId: string, cardType: 'ad' | 'cc', guideCode: string, comment: string) => void;
   updateFeedback: (id: string, updates: Partial<Feedback>) => void;
   deleteFeedback: (id: string) => void;
-  resolveFeedback: (id: string) => void;
-  rejectFeedback: (id: string) => void;
-  setFilter: (filter: FeedbackState['filter']) => void;
-  setSelectedCardId: (cardId: string | null) => void;
+  setStatus: (id: string, status: FeedbackStatus) => void;
+  setWriterReply: (id: string, reply: string) => void;
   getFeedbacksForCard: (cardId: string, cardType: 'ad' | 'cc') => Feedback[];
-  getFeedbackCount: (cardId: string, cardType: 'ad' | 'cc') => number;
-  getPendingCount: () => number;
+  getUnresolvedFeedbacks: () => Feedback[];
+  toggleExpand: (id: string) => void;
+  expandAll: () => void;
+  collapseAll: () => void;
+
+  // Project sync
   setFeedbacks: (feedbacks: Feedback[]) => void;
-  reset: () => void;
+  clearFeedbacks: () => void;
 }
 
 export const useFeedbackStore = create<FeedbackState>((set, get) => ({
   feedbacks: [],
-  filter: 'all',
-  selectedCardId: null,
+  expandedIds: new Set(),
 
-  addFeedback: (feedback) => {
+  addFeedback: (cardId, cardType, guideCode, comment) => {
     const now = new Date().toISOString();
-    const id = uuidv4();
     const newFeedback: Feedback = {
-      id,
-      cardId: feedback.cardId ?? '',
-      cardType: feedback.cardType ?? 'ad',
-      category: feedback.category ?? 'other',
-      content: feedback.content ?? '',
+      id: uuidv4(),
+      cardId,
+      cardType,
+      guideCode,
+      comment,
+      writerReply: '',
       status: 'pending',
-      reviewerName: feedback.reviewerName,
       createdAt: now,
       modifiedAt: now,
     };
@@ -46,83 +44,73 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
     set((state) => ({
       feedbacks: [...state.feedbacks, newFeedback],
     }));
-
-    return id;
   },
 
   updateFeedback: (id, updates) => {
     set((state) => ({
-      feedbacks: state.feedbacks.map((fb) =>
-        fb.id === id
-          ? { ...fb, ...updates, modifiedAt: new Date().toISOString() }
-          : fb
+      feedbacks: state.feedbacks.map((f) =>
+        f.id === id ? { ...f, ...updates, modifiedAt: new Date().toISOString() } : f
       ),
     }));
   },
 
   deleteFeedback: (id) => {
     set((state) => ({
-      feedbacks: state.feedbacks.filter((fb) => fb.id !== id),
+      feedbacks: state.feedbacks.filter((f) => f.id !== id),
     }));
   },
 
-  resolveFeedback: (id) => {
+  setStatus: (id, status) => {
     set((state) => ({
-      feedbacks: state.feedbacks.map((fb) =>
-        fb.id === id
-          ? {
-              ...fb,
-              status: 'resolved' as FeedbackStatus,
-              resolvedAt: new Date().toISOString(),
-              modifiedAt: new Date().toISOString(),
-            }
-          : fb
+      feedbacks: state.feedbacks.map((f) =>
+        f.id === id ? { ...f, status, modifiedAt: new Date().toISOString() } : f
       ),
     }));
   },
 
-  rejectFeedback: (id) => {
+  setWriterReply: (id, reply) => {
     set((state) => ({
-      feedbacks: state.feedbacks.map((fb) =>
-        fb.id === id
-          ? {
-              ...fb,
-              status: 'rejected' as FeedbackStatus,
-              modifiedAt: new Date().toISOString(),
-            }
-          : fb
+      feedbacks: state.feedbacks.map((f) =>
+        f.id === id ? { ...f, writerReply: reply, modifiedAt: new Date().toISOString() } : f
       ),
     }));
-  },
-
-  setFilter: (filter) => {
-    set({ filter });
-  },
-
-  setSelectedCardId: (cardId) => {
-    set({ selectedCardId: cardId });
   },
 
   getFeedbacksForCard: (cardId, cardType) => {
-    const { feedbacks } = get();
-    return feedbacks.filter((fb) => fb.cardId === cardId && fb.cardType === cardType);
+    return get().feedbacks.filter((f) => f.cardId === cardId && f.cardType === cardType);
   },
 
-  getFeedbackCount: (cardId, cardType) => {
-    const { feedbacks } = get();
-    return feedbacks.filter((fb) => fb.cardId === cardId && fb.cardType === cardType).length;
+  getUnresolvedFeedbacks: () => {
+    return get().feedbacks.filter((f) => f.status !== 'resolved');
   },
 
-  getPendingCount: () => {
-    const { feedbacks } = get();
-    return feedbacks.filter((fb) => fb.status === 'pending').length;
+  toggleExpand: (id) => {
+    set((state) => {
+      const newExpanded = new Set(state.expandedIds);
+      if (newExpanded.has(id)) {
+        newExpanded.delete(id);
+      } else {
+        newExpanded.add(id);
+      }
+      return { expandedIds: newExpanded };
+    });
+  },
+
+  expandAll: () => {
+    set((state) => ({
+      expandedIds: new Set(state.feedbacks.map((f) => f.id)),
+    }));
+  },
+
+  collapseAll: () => {
+    set({ expandedIds: new Set() });
   },
 
   setFeedbacks: (feedbacks) => {
-    set({ feedbacks });
+    set({ feedbacks, expandedIds: new Set() });
   },
 
-  reset: () => {
-    set({ feedbacks: [], filter: 'all', selectedCardId: null });
+  clearFeedbacks: () => {
+    set({ feedbacks: [], expandedIds: new Set() });
   },
 }));

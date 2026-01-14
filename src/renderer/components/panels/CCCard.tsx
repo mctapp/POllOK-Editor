@@ -8,11 +8,13 @@ import {
   History,
   RotateCcw,
   StickyNote,
+  MessageSquare,
 } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
-import { useCCStore, useVideoStore, useMemoStore, useUIStore, useSettingsStore } from '../../stores';
+import { useCCStore, useVideoStore, useMemoStore, useUIStore, useSettingsStore, useFeedbackStore } from '../../stores';
 import { CC_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
+import { FeedbackDialog } from '../FeedbackDialog';
 
 interface CCCardProps {
   caption: Caption;
@@ -29,11 +31,16 @@ export function CCCard({ caption }: CCCardProps) {
   const [showVersions, setShowVersions] = useState(false);
   const [showMemoDialog, setShowMemoDialog] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
 
   const { getMemosForCard } = useMemoStore();
-  const { setActiveTab } = useUIStore();
+  const { setActiveTab, appMode } = useUIStore();
+  const { getFeedbacksForCard } = useFeedbackStore();
   const cardMemos = getMemosForCard(caption.id, 'cc');
   const memoCount = cardMemos.length;
+  const cardFeedbacks = getFeedbacksForCard(caption.id, 'cc');
+  const feedbackCount = cardFeedbacks.length;
+  const pendingFeedbackCount = cardFeedbacks.filter((f) => f.status === 'pending').length;
 
   // 버전 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -222,6 +229,14 @@ export function CCCard({ caption }: CCCardProps) {
         cardId={caption.id}
         cardType="cc"
       />
+
+      <FeedbackDialog
+        isOpen={showFeedbackDialog}
+        onClose={() => setShowFeedbackDialog(false)}
+        cardId={caption.id}
+        cardType="cc"
+      />
+
       <div
         className={`group p-3 rounded-lg border transition-colors cursor-pointer ${
           isSelected
@@ -349,6 +364,38 @@ export function CCCard({ caption }: CCCardProps) {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* 피드백 버튼 (감수자 모드) */}
+            {appMode === 'reviewer' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFeedbackDialog(true);
+                }}
+                className={`p-1.5 transition-colors ${
+                  pendingFeedbackCount > 0
+                    ? 'text-orange-400 hover:text-orange-300'
+                    : feedbackCount > 0
+                    ? 'text-accent-green hover:text-accent-green/80'
+                    : 'text-gray-500 hover:text-white'
+                }`}
+                title={feedbackCount > 0 ? `피드백 ${feedbackCount}개 (미해결 ${pendingFeedbackCount}개)` : '피드백 추가'}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
+            )}
+            {/* 피드백 표시 (작가 모드) */}
+            {appMode === 'writer' && pendingFeedbackCount > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveTab('feedback');
+                }}
+                className="p-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+                title={`미해결 피드백 ${pendingFeedbackCount}개`}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
+            )}
             {/* 메모 버튼 */}
             <button
               onClick={handleMemoClick}

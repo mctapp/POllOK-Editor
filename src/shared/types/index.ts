@@ -107,45 +107,36 @@ export interface WaveformCache {
   analyzedAt: string;
 }
 
-// User Mode Types
-export type UserMode = 'writer' | 'reviewer';
-
-// Feedback Types (감수자가 작가에게 남기는 피드백)
-export interface Feedback {
-  id: string;
-  cardId: string;
-  cardType: 'ad' | 'cc';
-  category: FeedbackCategory;
-  content: string;
-  status: FeedbackStatus;
-  reviewerName?: string;
-  createdAt: string;
-  modifiedAt: string;
-  resolvedAt?: string;
+// Guide Types (감수 가이드)
+export interface GuideItem {
+  code: string; // A01, B01, etc.
+  category: string; // 유개념: WHEN, WHAT, etc.
+  majorCategory: string; // 대분류
+  minorCategory: string; // 소분류
+  principle: string; // 원칙/규칙
+  violationProblem: string; // 위반 시 문제
+  correctExample: string; // 올바른 예시
+  wrongExample: string; // 잘못된 예시
 }
 
-// 피드백 카테고리 (기본 가이드)
-export type FeedbackCategory =
-  | 'timing' // 타이밍 조정 필요
-  | 'wording' // 표현 수정 필요
-  | 'accuracy' // 정확성 확인 필요
-  | 'missing' // 누락된 내용
-  | 'redundant' // 불필요한 내용
-  | 'style' // 스타일 가이드 준수
-  | 'other'; // 기타
+// Feedback Types (감수자 피드백)
+export interface Feedback {
+  id: string;
+  cardId: string; // AD 또는 CC 카드 ID
+  cardType: 'ad' | 'cc';
+  guideCode: string; // 가이드 코드 (A01, B01, etc.)
+  comment: string; // 감수자 커멘트
+  writerReply: string; // 작가 답변/의견
+  status: FeedbackStatus;
+  createdAt: string;
+  modifiedAt: string;
+}
 
-export type FeedbackStatus = 'pending' | 'in_progress' | 'resolved' | 'rejected';
+// 피드백 상태: 보완요청(pending) → 진행중(in_progress) → 보완완료(resolved)
+export type FeedbackStatus = 'pending' | 'in_progress' | 'resolved';
 
-// 피드백 카테고리 라벨
-export const FEEDBACK_CATEGORY_LABELS: Record<FeedbackCategory, string> = {
-  timing: '타이밍 조정',
-  wording: '표현 수정',
-  accuracy: '정확성 확인',
-  missing: '누락된 내용',
-  redundant: '불필요한 내용',
-  style: '스타일 가이드',
-  other: '기타',
-};
+// App Mode Types
+export type AppMode = 'writer' | 'reviewer';
 
 // IPC Channels
 export const IpcChannels = {

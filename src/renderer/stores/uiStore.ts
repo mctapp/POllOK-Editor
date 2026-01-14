@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { UserMode } from '../../shared/types';
+import type { AppMode } from '../../shared/types';
 
-type ActiveTab = 'ad' | 'cc' | 'memo';
+type ActiveTab = 'ad' | 'cc' | 'memo' | 'feedback';
 type DialogType = 'newProject' | 'settings' | 'export' | 'about' | null;
 
 interface UIState {
   // 상태
+  appMode: AppMode; // 작가 모드 / 감수자 모드
   activeTab: ActiveTab;
   openDialog: DialogType;
   leftPanelWidth: number; // 비디오 패널 너비 (왼쪽 패널)
@@ -17,10 +18,10 @@ interface UIState {
   showReviewOnly: boolean; // 검토 필요 항목만 표시
   searchQuery: string; // 검색어
   timelineZoom: number; // 타임라인 줌 레벨 (0.5 ~ 10)
-  userMode: UserMode; // 작가/감수자 모드
-  showFeedbackPanel: boolean; // 피드백 패널 표시
+  showGuidePanel: boolean; // 가이드 안내 패널 표시
 
   // 액션
+  setAppMode: (mode: AppMode) => void;
   setActiveTab: (tab: ActiveTab) => void;
   setOpenDialog: (dialog: DialogType) => void;
   setLeftPanelWidth: (width: number) => void;
@@ -34,11 +35,11 @@ interface UIState {
   setTimelineZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
-  setUserMode: (mode: UserMode) => void;
-  toggleFeedbackPanel: () => void;
+  toggleGuidePanel: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
+  appMode: 'writer',
   activeTab: 'ad',
   openDialog: null,
   leftPanelWidth: 70, // 기본 비디오 패널 너비 (70%)
@@ -50,9 +51,9 @@ export const useUIStore = create<UIState>((set) => ({
   showReviewOnly: false,
   searchQuery: '',
   timelineZoom: 1,
-  userMode: 'writer', // 기본 작가 모드
-  showFeedbackPanel: false,
+  showGuidePanel: false,
 
+  setAppMode: (appMode) => set({ appMode }),
   setActiveTab: (activeTab) => set({ activeTab }),
   setOpenDialog: (openDialog) => set({ openDialog }),
 
@@ -88,8 +89,6 @@ export const useUIStore = create<UIState>((set) => ({
   zoomOut: () =>
     set((state) => ({ timelineZoom: Math.max(0.5, state.timelineZoom / 1.25) })),
 
-  setUserMode: (userMode) => set({ userMode }),
-
-  toggleFeedbackPanel: () =>
-    set((state) => ({ showFeedbackPanel: !state.showFeedbackPanel })),
+  toggleGuidePanel: () =>
+    set((state) => ({ showGuidePanel: !state.showGuidePanel })),
 }));

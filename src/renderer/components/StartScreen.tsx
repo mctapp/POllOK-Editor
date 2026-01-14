@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FolderOpen, Clock, FilePlus, PenLine, ClipboardCheck } from 'lucide-react';
+import { FolderOpen, Clock, FilePlus, Pencil, ClipboardCheck } from 'lucide-react';
 import { useProjectStore, getRecentProjects, type RecentProject } from '../stores/projectStore';
-import { useUIStore } from '../stores/uiStore';
-import type { UserMode } from '../../shared/types';
+import { useUIStore } from '../stores';
+import type { AppMode } from '../../shared/types';
 
 export function StartScreen() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const { openProject, createProject } = useProjectStore();
-  const { userMode, setUserMode } = useUIStore();
+  const { appMode, setAppMode } = useUIStore();
 
   useEffect(() => {
     setRecentProjects(getRecentProjects());
@@ -111,33 +111,36 @@ export function StartScreen() {
               </button>
             </div>
 
-            {/* 작업 모드 선택 */}
-            <div className="mt-6 pt-6 border-t border-dark-border">
-              <p className="text-sm text-gray-500 mb-3">작업 모드</p>
-              <div className="flex gap-3">
+            {/* 모드 선택 */}
+            <div className="mt-4 p-4 bg-dark-surface border border-dark-border rounded-lg">
+              <p className="text-xs text-gray-500 mb-3">작업 모드</p>
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setUserMode('writer')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
-                    userMode === 'writer'
-                      ? 'bg-brand-brown text-white'
-                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  onClick={() => setAppMode('writer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
+                    appMode === 'writer'
+                      ? 'bg-accent-green text-white'
+                      : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
-                  <PenLine className="w-4 h-4" />
+                  <Pencil className="w-4 h-4" />
                   작가 모드
                 </button>
                 <button
-                  onClick={() => setUserMode('reviewer')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
-                    userMode === 'reviewer'
-                      ? 'bg-accent-blue text-white'
-                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  onClick={() => setAppMode('reviewer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
+                    appMode === 'reviewer'
+                      ? 'bg-brand-brown text-white'
+                      : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
                   <ClipboardCheck className="w-4 h-4" />
                   감수자 모드
                 </button>
               </div>
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {appMode === 'writer' ? '스크립트를 작성합니다' : '스크립트에 피드백을 남깁니다'}
+              </p>
             </div>
           </div>
         ) : (
@@ -158,33 +161,36 @@ export function StartScreen() {
               기존 프로젝트 열기
             </button>
 
-            {/* 작업 모드 선택 */}
-            <div className="mt-6 pt-6 border-t border-dark-border">
-              <p className="text-sm text-gray-500 mb-3">작업 모드</p>
-              <div className="flex gap-3">
+            {/* 모드 선택 */}
+            <div className="mt-4 p-4 bg-dark-surface border border-dark-border rounded-lg">
+              <p className="text-xs text-gray-500 mb-3">작업 모드</p>
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setUserMode('writer')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
-                    userMode === 'writer'
-                      ? 'bg-brand-brown text-white'
-                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  onClick={() => setAppMode('writer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
+                    appMode === 'writer'
+                      ? 'bg-accent-green text-white'
+                      : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
-                  <PenLine className="w-4 h-4" />
+                  <Pencil className="w-4 h-4" />
                   작가 모드
                 </button>
                 <button
-                  onClick={() => setUserMode('reviewer')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
-                    userMode === 'reviewer'
-                      ? 'bg-accent-blue text-white'
-                      : 'bg-dark-surface border border-dark-border text-gray-300 hover:border-gray-500'
+                  onClick={() => setAppMode('reviewer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
+                    appMode === 'reviewer'
+                      ? 'bg-brand-brown text-white'
+                      : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
                   }`}
                 >
                   <ClipboardCheck className="w-4 h-4" />
                   감수자 모드
                 </button>
               </div>
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {appMode === 'writer' ? '스크립트를 작성합니다' : '스크립트에 피드백을 남깁니다'}
+              </p>
             </div>
           </div>
         )}
