@@ -1,7 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Clock, User, CheckSquare, Square, History, RotateCcw, StickyNote } from 'lucide-react';
+import {
+  Pencil,
+  Trash2,
+  Clock,
+  User,
+  CheckSquare,
+  Square,
+  History,
+  RotateCcw,
+  StickyNote,
+  ChevronDown,
+  ChevronRight,
+  Check,
+} from 'lucide-react';
 import type { Caption } from '../../../shared/types';
-import { useCCStore, useVideoStore, useMemoStore } from '../../stores';
+import { useCCStore, useVideoStore, useMemoStore, useUIStore } from '../../stores';
 import { CC_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
 
@@ -19,9 +32,12 @@ export function CCCard({ caption }: CCCardProps) {
   const [isEditingTimecode, setIsEditingTimecode] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const [showMemoDialog, setShowMemoDialog] = useState(false);
+  const [showMemos, setShowMemos] = useState(false);
 
-  const { getMemoCount } = useMemoStore();
-  const memoCount = getMemoCount(caption.id, 'cc');
+  const { getMemosForCard } = useMemoStore();
+  const { setActiveTab } = useUIStore();
+  const cardMemos = getMemosForCard(caption.id, 'cc');
+  const memoCount = cardMemos.length;
 
   // 버전 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -134,7 +150,6 @@ export function CCCard({ caption }: CCCardProps) {
   };
 
   const handleTimecodeBlur = (e: React.FocusEvent) => {
-    // 다른 타임코드 입력란으로 포커스가 이동하는 경우 닫지 않음
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (timecodeContainerRef.current?.contains(relatedTarget)) {
       return;
@@ -185,6 +200,12 @@ export function CCCard({ caption }: CCCardProps) {
     setShowMemoDialog(true);
   };
 
+  // 메모 클릭 시 메모 탭으로 이동
+  const handleMemoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveTab('memo');
+  };
+
   const getTypeIcon = () => {
     switch (caption.type) {
       case 'effect':
@@ -217,225 +238,271 @@ export function CCCard({ caption }: CCCardProps) {
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {/* 검토 체크박스 */}
-          <button
-            onClick={handleToggleReview}
-            className={`transition-colors ${
-              caption.needsReview ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400'
-            }`}
-            title={caption.needsReview ? '검토 완료로 표시' : '검토 필요로 표시'}
-          >
-            {caption.needsReview ? (
-              <CheckSquare className="w-4 h-4" />
-            ) : (
-              <Square className="w-4 h-4" />
-            )}
-          </button>
-
-          {isEditingTimecode ? (
-            <div
-              ref={timecodeContainerRef}
-              className="flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <input
-                type="text"
-                value={editTcIn}
-                onChange={(e) => setEditTcIn(e.target.value)}
-                onKeyDown={handleTimecodeKeyDown}
-                onBlur={handleTimecodeBlur}
-                className="w-24 font-timecode text-xs bg-dark-bg border border-accent-green rounded px-1 py-0.5 text-white focus:outline-none"
-                autoFocus
-              />
-              <span className="text-gray-600">→</span>
-              <input
-                type="text"
-                value={editTcOut}
-                onChange={(e) => setEditTcOut(e.target.value)}
-                onKeyDown={handleTimecodeKeyDown}
-                onBlur={handleTimecodeBlur}
-                className="w-24 font-timecode text-xs bg-dark-bg border border-accent-green rounded px-1 py-0.5 text-white focus:outline-none"
-              />
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTimecodeEdit();
-              }}
-            >
-              <span className="font-timecode text-xs text-gray-400">
-                {formatTimecode(caption.tcIn)}
-              </span>
-              <span className="text-gray-600">→</span>
-              <span className="font-timecode text-xs text-gray-400">
-                {formatTimecode(caption.tcOut)}
-              </span>
-            </div>
-          )}
-        </div>
-        <span className="text-xs px-2 py-0.5 bg-accent-green/30 rounded text-accent-green">{typeLabel}</span>
-      </div>
-
-      {/* 화자 */}
-      {speaker && (
-        <div className="flex items-center gap-1.5 mb-2">
-          <User className="w-3 h-3" style={{ color: speaker.color }} />
-          <span className="text-xs font-medium" style={{ color: speaker.color }}>
-            {speaker.name}
-          </span>
-        </div>
-      )}
-
-      {/* 내용 */}
-      {isEditing ? (
-        <textarea
-          ref={textareaRef}
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleSave}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-accent-green focus:outline-none"
-          rows={2}
-          placeholder="자막 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
-        />
-      ) : (
-        <p className="text-sm text-gray-200 mb-3 whitespace-pre-wrap">
-          {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
-          {caption.type !== 'dialogue' && caption.text ? (
-            <span className="text-gray-400">[{caption.text}]</span>
-          ) : (
-            caption.text || (
-              <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
-            )
-          )}
-        </p>
-      )}
-
-      {/* 푸터 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {getDuration()}초
-          </span>
-          <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-400">
-            {caption.position === 'top' ? '상단' : caption.position === 'center' ? '중앙' : '하단'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {/* 메모 버튼 */}
-          <button
-            onClick={handleOpenMemo}
-            className={`p-1.5 transition-colors relative ${
-              memoCount > 0
-                ? 'text-accent-yellow hover:text-accent-yellow/80'
-                : 'text-gray-500 hover:text-white'
-            }`}
-            title={`메모 ${memoCount > 0 ? `(${memoCount})` : ''}`}
-          >
-            <StickyNote className="w-4 h-4" />
-            {memoCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-accent-yellow text-dark-bg text-[10px] rounded-full flex items-center justify-center font-medium">
-                {memoCount}
-              </span>
-            )}
-          </button>
-          <div className="relative" ref={versionDropdownRef}>
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            {/* 검토 체크박스 */}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowVersions(!showVersions);
-              }}
-              className={`p-1.5 transition-colors ${
-                caption.versions?.length
-                  ? 'text-accent-yellow hover:text-accent-yellow/80'
-                  : 'text-gray-500 hover:text-white'
+              onClick={handleToggleReview}
+              className={`transition-colors ${
+                caption.needsReview ? 'text-accent-yellow' : 'text-gray-600 hover:text-gray-400'
               }`}
-              title={`버전 기록 ${caption.versions?.length ? `(${caption.versions.length})` : ''}`}
+              title={caption.needsReview ? '검토 완료로 표시' : '검토 필요로 표시'}
             >
-              <History className="w-4 h-4" />
+              {caption.needsReview ? (
+                <CheckSquare className="w-4 h-4" />
+              ) : (
+                <Square className="w-4 h-4" />
+              )}
             </button>
-            {showVersions && (
+
+            {isEditingTimecode ? (
               <div
-                className="absolute bottom-full right-0 mb-1 w-64 bg-dark-bg border border-dark-border rounded-lg shadow-xl z-50"
+                ref={timecodeContainerRef}
+                className="flex items-center gap-1"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="p-2 border-b border-dark-border flex items-center justify-between">
-                  <span className="text-xs text-gray-400">버전 기록</span>
-                  <button
-                    onClick={handleSaveVersion}
-                    className="text-xs px-2 py-0.5 bg-accent-green hover:bg-accent-green/80 text-white rounded transition-colors"
-                    disabled={!caption.text.trim()}
-                  >
-                    현재 버전 저장
-                  </button>
-                </div>
-                <div className="max-h-48 overflow-y-auto">
-                  {caption.versions?.length ? (
-                    caption.versions.map((version, index) => (
-                      <div
-                        key={index}
-                        className="p-2 hover:bg-dark-surface border-b border-dark-border/50 last:border-0"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-500">
-                            {new Date(version.savedAt).toLocaleString('ko-KR', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                          <button
-                            onClick={(e) => handleRestoreVersion(e, version.text)}
-                            className="text-xs text-accent-yellow hover:text-white flex items-center gap-0.5"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            복원
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-300 line-clamp-2">{version.text}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="p-3 text-xs text-gray-500 text-center">
-                      저장된 버전이 없습니다
-                    </p>
-                  )}
-                </div>
+                <input
+                  type="text"
+                  value={editTcIn}
+                  onChange={(e) => setEditTcIn(e.target.value)}
+                  onKeyDown={handleTimecodeKeyDown}
+                  onBlur={handleTimecodeBlur}
+                  className="w-24 font-timecode text-xs bg-dark-bg border border-accent-green rounded px-1 py-0.5 text-white focus:outline-none"
+                  autoFocus
+                />
+                <span className="text-gray-600">→</span>
+                <input
+                  type="text"
+                  value={editTcOut}
+                  onChange={(e) => setEditTcOut(e.target.value)}
+                  onKeyDown={handleTimecodeKeyDown}
+                  onBlur={handleTimecodeBlur}
+                  className="w-24 font-timecode text-xs bg-dark-bg border border-accent-green rounded px-1 py-0.5 text-white focus:outline-none"
+                />
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-2 hover:bg-dark-bg/50 rounded px-1 -mx-1 cursor-text"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTimecodeEdit();
+                }}
+              >
+                <span className="font-timecode text-xs text-gray-400">
+                  {formatTimecode(caption.tcIn)}
+                </span>
+                <span className="text-gray-600">→</span>
+                <span className="font-timecode text-xs text-gray-400">
+                  {formatTimecode(caption.tcOut)}
+                </span>
               </div>
             )}
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingId(caption.id);
-            }}
-            className="p-1.5 text-gray-500 hover:text-white transition-colors"
-            title="편집"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteCaption(caption.id);
-            }}
-            className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
-            title="삭제"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <span className="text-xs px-2 py-0.5 bg-accent-green/30 rounded text-accent-green">
+            {typeLabel}
+          </span>
+        </div>
+
+        {/* 화자 */}
+        {speaker && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <User className="w-3 h-3" style={{ color: speaker.color }} />
+            <span className="text-xs font-medium" style={{ color: speaker.color }}>
+              {speaker.name}
+            </span>
+          </div>
+        )}
+
+        {/* 내용 */}
+        {isEditing ? (
+          <textarea
+            ref={textareaRef}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-white resize-none focus:border-accent-green focus:outline-none"
+            rows={2}
+            placeholder="자막 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
+          />
+        ) : (
+          <p className="text-sm text-gray-200 mb-2 whitespace-pre-wrap">
+            {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
+            {caption.type !== 'dialogue' && caption.text ? (
+              <span className="text-gray-400">[{caption.text}]</span>
+            ) : (
+              caption.text || (
+                <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
+              )
+            )}
+          </p>
+        )}
+
+        {/* 메모 섹션 */}
+        {memoCount > 0 && (
+          <div className="mb-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMemos(!showMemos);
+              }}
+              className="flex items-center gap-1 text-xs text-accent-yellow hover:text-accent-yellow/80"
+            >
+              {showMemos ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+              <StickyNote className="w-3 h-3" />
+              <span>메모 ({memoCount})</span>
+            </button>
+            {showMemos && (
+              <div className="mt-1 pl-4 space-y-1">
+                {cardMemos.slice(0, 3).map((memo) => (
+                  <div
+                    key={memo.id}
+                    onClick={handleMemoClick}
+                    className="flex items-center gap-2 text-xs text-gray-400 hover:text-white cursor-pointer"
+                  >
+                    {memo.completed ? (
+                      <Check className="w-3 h-3 text-accent-green" />
+                    ) : (
+                      <div className="w-3 h-3 border border-gray-500 rounded-sm" />
+                    )}
+                    <span className={memo.completed ? 'line-through text-gray-600' : ''}>
+                      {memo.title}
+                    </span>
+                  </div>
+                ))}
+                {memoCount > 3 && (
+                  <button
+                    onClick={handleMemoClick}
+                    className="text-xs text-gray-500 hover:text-accent-yellow"
+                  >
+                    +{memoCount - 3}개 더 보기
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 푸터 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {getDuration()}초
+            </span>
+            <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-400">
+              {caption.position === 'top' ? '상단' : caption.position === 'center' ? '중앙' : '하단'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* 메모 버튼 */}
+            <button
+              onClick={handleOpenMemo}
+              className={`p-1.5 transition-colors relative ${
+                memoCount > 0
+                  ? 'text-accent-yellow hover:text-accent-yellow/80'
+                  : 'text-gray-500 hover:text-white'
+              }`}
+              title="메모 추가"
+            >
+              <StickyNote className="w-4 h-4" />
+            </button>
+            <div className="relative" ref={versionDropdownRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowVersions(!showVersions);
+                }}
+                className={`p-1.5 transition-colors ${
+                  caption.versions?.length
+                    ? 'text-accent-yellow hover:text-accent-yellow/80'
+                    : 'text-gray-500 hover:text-white'
+                }`}
+                title={`버전 기록 ${caption.versions?.length ? `(${caption.versions.length})` : ''}`}
+              >
+                <History className="w-4 h-4" />
+              </button>
+              {showVersions && (
+                <div
+                  className="absolute bottom-full right-0 mb-1 w-64 bg-dark-bg border border-dark-border rounded-lg shadow-xl z-50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-2 border-b border-dark-border flex items-center justify-between">
+                    <span className="text-xs text-gray-400">버전 기록</span>
+                    <button
+                      onClick={handleSaveVersion}
+                      className="text-xs px-2 py-0.5 bg-accent-green hover:bg-accent-green/80 text-white rounded transition-colors"
+                      disabled={!caption.text.trim()}
+                    >
+                      현재 버전 저장
+                    </button>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {caption.versions?.length ? (
+                      caption.versions.map((version, index) => (
+                        <div
+                          key={index}
+                          className="p-2 hover:bg-dark-surface border-b border-dark-border/50 last:border-0"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500">
+                              {new Date(version.savedAt).toLocaleString('ko-KR', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                            <button
+                              onClick={(e) => handleRestoreVersion(e, version.text)}
+                              className="text-xs text-accent-yellow hover:text-white flex items-center gap-0.5"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              복원
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-300 line-clamp-2">{version.text}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="p-3 text-xs text-gray-500 text-center">
+                        저장된 버전이 없습니다
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingId(caption.id);
+              }}
+              className="p-1.5 text-gray-500 hover:text-white transition-colors"
+              title="편집"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteCaption(caption.id);
+              }}
+              className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
+              title="삭제"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 }

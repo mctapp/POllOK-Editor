@@ -42,8 +42,13 @@ const api = {
   },
 
   // 녹음
-  saveRecording: (cardId: string, audioData: number[]): Promise<string | null> =>
-    ipcRenderer.invoke(IpcChannels.RECORDING_SAVE, { cardId, audioData }),
+  saveRecording: (
+    cardId: string,
+    audioData: number[],
+    projectPath?: string,
+    sampleRate?: number
+  ): Promise<string | null> =>
+    ipcRenderer.invoke(IpcChannels.RECORDING_SAVE, { cardId, audioData, projectPath, sampleRate }),
 
   // 플랫폼 정보
   platform: process.platform,
