@@ -237,8 +237,8 @@ export function CCCard({ caption }: CCCardProps) {
       >
         {/* 헤더 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between mb-2 transition-opacity ${
-            isActive ? 'opacity-100' : 'opacity-0 h-0 mb-0 overflow-hidden'
+          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+            isActive ? 'opacity-100 max-h-12 mb-2' : 'opacity-0 max-h-0 mb-0'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -334,8 +334,8 @@ export function CCCard({ caption }: CCCardProps) {
 
         {/* 푸터 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between mt-2 transition-opacity ${
-            isActive ? 'opacity-100' : 'opacity-0 h-0 mt-0 overflow-hidden'
+          className={`flex items-center justify-between overflow-hidden transition-all duration-200 ease-in-out ${
+            isActive ? 'opacity-100 max-h-12 mt-2' : 'opacity-0 max-h-0 mt-0'
           }`}
         >
           <div className="flex items-center gap-3 text-xs text-gray-500">

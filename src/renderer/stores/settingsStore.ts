@@ -54,6 +54,20 @@ export interface ScriptSettings {
 }
 
 /**
+ * 오버레이 설정
+ */
+export interface OverlaySettings {
+  /** AD 오버레이 글꼴 크기 (12 ~ 32) */
+  adFontSize: number;
+  /** CC 오버레이 글꼴 크기 (12 ~ 32) */
+  ccFontSize: number;
+  /** AD 오버레이 위치 (top, center, bottom) */
+  adPosition: 'top' | 'center' | 'bottom';
+  /** CC 오버레이 위치 (top, center, bottom) */
+  ccPosition: 'top' | 'center' | 'bottom';
+}
+
+/**
  * 전체 설정
  */
 interface SettingsState {
@@ -66,6 +80,9 @@ interface SettingsState {
   // 스크립트 설정
   script: ScriptSettings;
 
+  // 오버레이 설정
+  overlay: OverlaySettings;
+
   // 키보드 단축키
   shortcuts: KeyboardShortcuts;
 
@@ -73,6 +90,7 @@ interface SettingsState {
   setWaveformSettings: (settings: Partial<WaveformSettings>) => void;
   setTimelineSettings: (settings: Partial<TimelineSettings>) => void;
   setScriptSettings: (settings: Partial<ScriptSettings>) => void;
+  setOverlaySettings: (settings: Partial<OverlaySettings>) => void;
   setShortcut: (key: keyof KeyboardShortcuts, value: string) => void;
   resetToDefaults: () => void;
 }
@@ -119,6 +137,16 @@ export const DEFAULT_SCRIPT: ScriptSettings = {
 };
 
 /**
+ * 기본 오버레이 설정
+ */
+export const DEFAULT_OVERLAY: OverlaySettings = {
+  adFontSize: 16,
+  ccFontSize: 16,
+  adPosition: 'bottom',
+  ccPosition: 'bottom',
+};
+
+/**
  * 설정 스토어
  */
 export const useSettingsStore = create<SettingsState>()(
@@ -127,6 +155,7 @@ export const useSettingsStore = create<SettingsState>()(
       waveform: { ...DEFAULT_WAVEFORM },
       timeline: { ...DEFAULT_TIMELINE },
       script: { ...DEFAULT_SCRIPT },
+      overlay: { ...DEFAULT_OVERLAY },
       shortcuts: { ...DEFAULT_SHORTCUTS },
 
       setWaveformSettings: (settings) =>
@@ -144,6 +173,11 @@ export const useSettingsStore = create<SettingsState>()(
           script: { ...state.script, ...settings },
         })),
 
+      setOverlaySettings: (settings) =>
+        set((state) => ({
+          overlay: { ...state.overlay, ...settings },
+        })),
+
       setShortcut: (key, value) =>
         set((state) => ({
           shortcuts: { ...state.shortcuts, [key]: value },
@@ -154,6 +188,7 @@ export const useSettingsStore = create<SettingsState>()(
           waveform: { ...DEFAULT_WAVEFORM },
           timeline: { ...DEFAULT_TIMELINE },
           script: { ...DEFAULT_SCRIPT },
+          overlay: { ...DEFAULT_OVERLAY },
           shortcuts: { ...DEFAULT_SHORTCUTS },
         }),
     }),

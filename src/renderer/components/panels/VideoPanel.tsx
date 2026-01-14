@@ -13,7 +13,7 @@ import {
   X,
   Subtitles,
 } from 'lucide-react';
-import { useVideoStore, useProjectStore, useADStore, useCCStore, useUIStore } from '../../stores';
+import { useVideoStore, useProjectStore, useADStore, useCCStore, useUIStore, useSettingsStore } from '../../stores';
 import { PLAYBACK_RATES } from '../../../shared/constants';
 
 export function VideoPanel() {
@@ -28,6 +28,7 @@ export function VideoPanel() {
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
   const { showOverlay, toggleOverlay, activeTab } = useUIStore();
+  const { overlay } = useSettingsStore();
   const {
     source,
     isPlaying,
@@ -397,25 +398,51 @@ export function VideoPanel() {
 
             {/* 오버레이 텍스트 */}
             {showOverlay && (
-              <div className="absolute inset-x-0 bottom-16 flex flex-col items-center gap-2 pointer-events-none">
+              <>
                 {/* AD 오버레이 */}
                 {currentOverlayText.ad && (
-                  <div className="max-w-[80%] px-4 py-2 bg-brand-brown/80 rounded-lg">
-                    <p className="text-white text-sm text-center font-medium whitespace-pre-wrap">
-                      {currentOverlayText.ad}
-                    </p>
+                  <div
+                    className={`absolute inset-x-0 flex justify-center pointer-events-none ${
+                      overlay.adPosition === 'top'
+                        ? 'top-4'
+                        : overlay.adPosition === 'center'
+                        ? 'top-1/2 -translate-y-1/2'
+                        : 'bottom-16'
+                    }`}
+                  >
+                    <div className="max-w-[80%] px-4 py-2 bg-brand-brown/80 rounded-lg">
+                      <p
+                        className="text-white text-center font-medium whitespace-pre-wrap"
+                        style={{ fontSize: `${overlay.adFontSize}px` }}
+                      >
+                        {currentOverlayText.ad}
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {/* CC 오버레이 */}
                 {currentOverlayText.cc && (
-                  <div className="max-w-[80%] px-4 py-2 bg-black/80 rounded-lg">
-                    <p className="text-white text-sm text-center whitespace-pre-wrap">
-                      {currentOverlayText.cc}
-                    </p>
+                  <div
+                    className={`absolute inset-x-0 flex justify-center pointer-events-none ${
+                      overlay.ccPosition === 'top'
+                        ? 'top-4'
+                        : overlay.ccPosition === 'center'
+                        ? 'top-1/2 -translate-y-1/2'
+                        : 'bottom-16'
+                    }`}
+                  >
+                    <div className="max-w-[80%] px-4 py-2 bg-black/80 rounded-lg">
+                      <p
+                        className="text-white text-center whitespace-pre-wrap"
+                        style={{ fontSize: `${overlay.ccFontSize}px` }}
+                      >
+                        {currentOverlayText.cc}
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </>
         ) : (
