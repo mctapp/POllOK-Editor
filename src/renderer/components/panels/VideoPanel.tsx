@@ -186,6 +186,20 @@ export function VideoPanel() {
     currentFrameRef.current = currentFrame;
   }, [currentFrame]);
 
+  // currentFrame 변화 시 비디오 위치 동기화 (store에서 seekToFrame 호출 시)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !source || fps <= 0 || duration <= 0) return;
+
+    // 재생 중이 아니고, isSeeking 중일 때만 비디오 위치 동기화
+    if (!isPlaying && isSeeking) {
+      const targetTime = currentFrame / fps;
+      const clampedTime = Math.min(targetTime, video.duration - 0.1);
+      console.log('Sync video to frame:', currentFrame, 'time:', clampedTime);
+      video.currentTime = clampedTime;
+    }
+  }, [currentFrame, isSeeking, isPlaying, fps, duration, source]);
+
   // 재생/일시정지 동기화
   useEffect(() => {
     const video = videoRef.current;

@@ -103,30 +103,13 @@ export const useVideoStore = create<VideoState>((set, get) => ({
 
     const clampedFrame = Math.max(0, Math.min(duration, frame));
 
-    // 시킹 시작 - timeupdate에서 프레임 덮어쓰기 방지
+    // 상태만 업데이트 - 실제 비디오 seek는 VideoPanel에서 처리
     set({ currentFrame: clampedFrame, isSeeking: true });
 
-    // 비디오 요소 직접 제어
-    const video = document.querySelector('video') as HTMLVideoElement;
-    console.log('seekToFrame: video element found?', !!video, 'frame:', clampedFrame);
-    if (video && !isNaN(clampedFrame / fps)) {
-      video.currentTime = clampedFrame / fps;
-      console.log('seekToFrame: set video.currentTime to', video.currentTime);
-
-      // seeked 이벤트로 시킹 완료 감지
-      const handleSeeked = () => {
-        set({ isSeeking: false });
-        video.removeEventListener('seeked', handleSeeked);
-      };
-      video.addEventListener('seeked', handleSeeked);
-
-      // 타임아웃 fallback
-      setTimeout(() => {
-        set({ isSeeking: false });
-      }, 100);
-    } else {
+    // 짧은 딜레이 후 isSeeking 해제 (VideoPanel이 상태 변화를 감지할 시간)
+    setTimeout(() => {
       set({ isSeeking: false });
-    }
+    }, 50);
   },
 
   seekFrames: (delta) => {
