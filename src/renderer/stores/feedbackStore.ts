@@ -21,6 +21,7 @@ interface FeedbackState {
   // Project sync
   setFeedbacks: (feedbacks: Feedback[]) => void;
   clearFeedbacks: () => void;
+  reset: () => void;
 }
 
 export const useFeedbackStore = create<FeedbackState>((set, get) => ({
@@ -111,6 +112,10 @@ export const useFeedbackStore = create<FeedbackState>((set, get) => ({
   },
 
   clearFeedbacks: () => {
+    set({ feedbacks: [], expandedIds: new Set() });
+  },
+
+  reset: () => {
     set({ feedbacks: [], expandedIds: new Set() });
   },
 }));
