@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { ZoomIn, ZoomOut } from 'lucide-react';
-import { useVideoStore, useADStore, useCCStore, useProjectStore, useUIStore } from '../../stores';
+import { useVideoStore, useADStore, useCCStore, useProjectStore, useUIStore, useSettingsStore } from '../../stores';
 import { useAudioWaveform } from '../../hooks';
 import { Waveform, WaveformLoading, WaveformEmpty, WaveformError } from '../Waveform';
 
@@ -10,10 +10,11 @@ export function TimelinePanel() {
   const { descriptions, updateDescription, selectDescription } = useADStore();
   const { captions, updateCaption, selectCaption } = useCCStore();
   const { timelineZoom, zoomIn, zoomOut } = useUIStore();
+  const { waveform: waveformSettings, timeline: timelineSettings } = useSettingsStore();
 
-  // 오디오 웨이브폼 분석 (2000 샘플로 더 디테일하게)
+  // 오디오 웨이브폼 분석 (설정에서 샘플 수 가져옴)
   const { waveformData, isLoading: isWaveformLoading, status: waveformStatus, statusMessage, progress: waveformProgress } = useAudioWaveform(source, {
-    samples: 2000,
+    samples: waveformSettings.samples,
   });
 
   // 트랙 컨테이너 너비 추적
@@ -252,7 +253,10 @@ export function TimelinePanel() {
             onClick={handleTrackClick}
           >
             {/* AD 트랙 */}
-            <div className="h-1/3 border-b border-dark-border relative">
+            <div
+              className="border-b border-dark-border relative"
+              style={{ height: `${timelineSettings.adTrackHeightRatio * 100}%` }}
+            >
               {descriptions.map((desc) => (
                 <div
                   key={desc.id}
@@ -281,7 +285,10 @@ export function TimelinePanel() {
             </div>
 
             {/* CC 트랙 */}
-            <div className="h-1/3 border-b border-dark-border relative">
+            <div
+              className="border-b border-dark-border relative"
+              style={{ height: `${timelineSettings.ccTrackHeightRatio * 100}%` }}
+            >
               {captions.map((caption) => (
                 <div
                   key={caption.id}
@@ -310,7 +317,10 @@ export function TimelinePanel() {
             </div>
 
             {/* 오디오 파형 영역 */}
-            <div className="h-1/3 relative overflow-hidden">
+            <div
+              className="relative overflow-hidden"
+              style={{ height: `${timelineSettings.audioTrackHeightRatio * 100}%` }}
+            >
               {!source ? (
                 <WaveformEmpty message="영상을 불러오면 오디오 파형이 표시됩니다" />
               ) : waveformStatus === 'waiting' || waveformStatus === 'analyzing' ? (

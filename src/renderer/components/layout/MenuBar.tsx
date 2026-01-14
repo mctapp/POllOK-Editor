@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronRight } from 'lucide-react';
 import { useProjectStore, useUIStore, useADStore, useCCStore, useVideoStore } from '../../stores';
+import { PreferencesDialog } from '../PreferencesDialog';
 
 interface MenuItem {
   label: string;
@@ -12,6 +14,7 @@ interface MenuItem {
 }
 
 export function MenuBar() {
+  const [showPreferences, setShowPreferences] = useState(false);
   const { project, createProject, saveProject, closeProject } = useProjectStore();
   const { setOpenDialog, setActiveTab } = useUIStore();
   const { descriptions } = useADStore();
@@ -175,6 +178,8 @@ export function MenuBar() {
       { label: '삭제', shortcut: 'Delete', disabled: true },
       { separator: true },
       { label: '전체 선택', shortcut: `${modKey}+A`, disabled: true },
+      { separator: true },
+      { label: '환경설정...', shortcut: `${modKey}+,`, action: () => setShowPreferences(true) },
     ],
     View: [
       { label: 'AD 패널', shortcut: `${modKey}+1`, action: () => setActiveTab('ad') },
@@ -283,6 +288,11 @@ export function MenuBar() {
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       ))}
+
+      <PreferencesDialog
+        isOpen={showPreferences}
+        onClose={() => setShowPreferences(false)}
+      />
     </div>
   );
 }
