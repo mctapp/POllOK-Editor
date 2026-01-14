@@ -30,6 +30,8 @@ const api = {
       defaultPath: string;
       filters: { name: string; extensions: string[] }[];
     }): Promise<string | null> => ipcRenderer.invoke(IpcChannels.EXPORT_SELECT_PATH, options),
+    writeFile: (data: { path: string; content: string }): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.EXPORT_WRITE_FILE, data),
   },
 
   // 이벤트 리스너

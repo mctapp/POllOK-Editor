@@ -1,14 +1,14 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { ZoomIn, ZoomOut } from 'lucide-react';
-import { useVideoStore, useADStore, useCCStore, useProjectStore } from '../../stores';
+import { useVideoStore, useADStore, useCCStore, useProjectStore, useUIStore } from '../../stores';
 
 export function TimelinePanel() {
   const { project } = useProjectStore();
   const { currentFrame, duration, fps, seekToFrame } = useVideoStore();
   const { descriptions, updateDescription, selectDescription } = useADStore();
   const { captions, updateCaption, selectCaption } = useCCStore();
+  const { timelineZoom, zoomIn, zoomOut } = useUIStore();
 
-  const [zoom, setZoom] = useState(1);
   const timelineRef = useRef<HTMLDivElement>(null);
   const trackContainerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{
@@ -49,13 +49,8 @@ export function TimelinePanel() {
     [duration, dragging, seekToFrame]
   );
 
-  const handleZoomIn = () => {
-    setZoom((z) => Math.min(z * 1.5, 10));
-  };
-
-  const handleZoomOut = () => {
-    setZoom((z) => Math.max(z / 1.5, 0.5));
-  };
+  const handleZoomIn = () => zoomIn();
+  const handleZoomOut = () => zoomOut();
 
   // 드래그 시작
   const handleDragStart = (
@@ -173,7 +168,7 @@ export function TimelinePanel() {
   }
 
   // 줌 적용된 트랙 너비 (픽셀)
-  const trackWidthPercent = 100 * zoom;
+  const trackWidthPercent = 100 * timelineZoom;
 
   return (
     <div className="h-full bg-dark-surface flex flex-col">
@@ -192,7 +187,7 @@ export function TimelinePanel() {
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-xs text-gray-500 w-10 text-center">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs text-gray-500 w-10 text-center">{Math.round(timelineZoom * 100)}%</span>
             <button
               onClick={handleZoomIn}
               className="p-1 text-gray-500 hover:text-white transition-colors"

@@ -11,11 +11,26 @@ interface CCCardProps {
 export function CCCard({ caption }: CCCardProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timecodeContainerRef = useRef<HTMLDivElement>(null);
+  const versionDropdownRef = useRef<HTMLDivElement>(null);
   const [editText, setEditText] = useState(caption.text);
   const [editTcIn, setEditTcIn] = useState('');
   const [editTcOut, setEditTcOut] = useState('');
   const [isEditingTimecode, setIsEditingTimecode] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+
+  // 버전 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!showVersions) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target as Node)) {
+        setShowVersions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showVersions]);
 
   const {
     selectedIds,
@@ -298,7 +313,7 @@ export function CCCard({ caption }: CCCardProps) {
         </div>
 
         <div className="flex items-center gap-1">
-          <div className="relative">
+          <div className="relative" ref={versionDropdownRef}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
