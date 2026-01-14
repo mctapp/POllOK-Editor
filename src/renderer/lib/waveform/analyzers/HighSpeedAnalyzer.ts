@@ -77,23 +77,21 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
   }
 
   /**
-   * 숨겨진 비디오 요소로 분석
+   * 숨겨진 비디오 요소로 분석 (연속 고속 재생)
    */
   private async analyzeWithHiddenAudio(
     source: string,
     duration: number,
     targetSamples: number
   ): Promise<number[]> {
-    // 숨겨진 비디오 요소 생성 (audio 요소는 비디오 파일 재생 불가)
     const video = document.createElement('video');
     video.src = source;
     video.preload = 'auto';
-    video.muted = true; // 소리 안 나게
+    video.playbackRate = 16; // 16배속 재생
     video.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
     document.body.appendChild(video);
 
     try {
-      // 비디오 로드 대기
       await this.waitForVideoReady(video);
 
       if (this.isCancelled()) {
@@ -104,74 +102,67 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
       const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.3;
+      analyser.smoothingTimeConstant = 0.5;
 
       const sourceNode = audioContext.createMediaElementSource(video);
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 0; // 음소거
+      gainNode.gain.value = 0;
 
       sourceNode.connect(analyser);
       analyser.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
-      // muted 해제해야 MediaElementSource가 오디오 데이터를 받음
-      video.muted = false;
-      video.volume = 0;
-
       const peaks: number[] = [];
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const timeStep = duration / targetSamples;
-      const chunkSize = 10;
 
-      this.reportProgress(10, '오디오 분석 중...');
+      // 실제 재생 시간 (16배속 적용)
+      const actualDuration = duration / 16;
+      const sampleInterval = (actualDuration * 1000) / targetSamples;
+      const minInterval = 30; // 최소 30ms 간격
+      const interval = Math.max(minInterval, sampleInterval);
+      const actualSamples = Math.floor((actualDuration * 1000) / interval);
 
-      for (let i = 0; i < targetSamples; i += chunkSize) {
-        if (this.isCancelled()) {
-          break;
-        }
+      this.reportProgress(10, '오디오 분석 중... (16x 재생)');
 
-        const chunkEnd = Math.min(i + chunkSize, targetSamples);
-        for (let j = i; j < chunkEnd; j++) {
-          const targetTime = j * timeStep;
+      // 재생 시작
+      video.currentTime = 0;
+      video.volume = 0.01; // 아주 작은 볼륨 (0이면 데이터 안 나올 수 있음)
 
-          video.currentTime = targetTime;
-
-          // seeked 이벤트 대기
-          await new Promise<void>((resolve) => {
-            const onSeeked = () => {
-              video.removeEventListener('seeked', onSeeked);
-              resolve();
-            };
-            video.addEventListener('seeked', onSeeked);
-            setTimeout(resolve, 100);
-          });
-
-          // 짧게 재생하여 오디오 버퍼 채우기
-          try {
-            await video.play();
-            await this.yieldToMain(50);
-            video.pause();
-          } catch {
-            // 재생 실패 시 무시
-          }
-
-          // 오디오 레벨 측정
-          analyser.getByteFrequencyData(dataArray);
-
-          let sum = 0;
-          for (let k = 0; k < dataArray.length; k++) {
-            sum += dataArray[k] * dataArray[k];
-          }
-          const rms = Math.sqrt(sum / dataArray.length);
-          peaks.push(Math.min(1, rms / 80));
-        }
-
-        const progress = Math.floor((chunkEnd / targetSamples) * 90) + 10;
-        const remaining = Math.ceil((targetSamples - chunkEnd) * 0.15);
-        this.reportProgress(progress, `오디오 분석 중... (약 ${remaining}초 남음)`);
-
-        await this.yieldToMain(0);
+      try {
+        await video.play();
+      } catch (e) {
+        console.error('Video play failed:', e);
+        throw new Error('비디오 재생 실패');
       }
+
+      let lastProgress = 0;
+      const startTime = Date.now();
+
+      // 연속 재생하면서 샘플링
+      while (!video.ended && !this.isCancelled() && peaks.length < actualSamples) {
+        // 오디오 레벨 측정
+        analyser.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let k = 0; k < dataArray.length; k++) {
+          sum += dataArray[k] * dataArray[k];
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        peaks.push(Math.min(1, rms / 80));
+
+        // 진행률 업데이트
+        const progress = Math.min(99, Math.floor((peaks.length / actualSamples) * 90) + 10);
+        if (progress !== lastProgress && progress % 5 === 0) {
+          lastProgress = progress;
+          const elapsed = (Date.now() - startTime) / 1000;
+          const remaining = Math.max(0, Math.ceil((actualDuration - elapsed)));
+          this.reportProgress(progress, `오디오 분석 중... (약 ${remaining}초 남음)`);
+        }
+
+        await this.yieldToMain(interval);
+      }
+
+      video.pause();
 
       // 정리
       sourceNode.disconnect();
@@ -179,12 +170,31 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
       gainNode.disconnect();
       await audioContext.close();
 
-      return peaks;
+      // 목표 샘플 수에 맞게 리샘플링
+      return this.resamplePeaks(peaks, targetSamples);
     } finally {
       video.pause();
       video.src = '';
       video.remove();
     }
+  }
+
+  /**
+   * 피크 리샘플링
+   */
+  private resamplePeaks(peaks: number[], targetLength: number): number[] {
+    if (peaks.length === 0) return new Array(targetLength).fill(0.1);
+    if (peaks.length === targetLength) return peaks;
+
+    const result: number[] = [];
+    const ratio = peaks.length / targetLength;
+
+    for (let i = 0; i < targetLength; i++) {
+      const srcIndex = Math.floor(i * ratio);
+      result.push(peaks[Math.min(srcIndex, peaks.length - 1)]);
+    }
+
+    return result;
   }
 
   /**
