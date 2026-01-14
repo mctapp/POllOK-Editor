@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useVideoStore, useADStore, useCCStore, useUIStore } from '../stores';
+import { useVideoStore, useADStore, useCCStore, useUIStore, useSettingsStore } from '../stores';
 
 interface KeyboardShortcutsOptions {
   enabled?: boolean;
@@ -22,6 +22,36 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
   const { addDescription } = useADStore();
   const { addCaption } = useCCStore();
   const { zoomIn, zoomOut } = useUIStore();
+  const { shortcuts } = useSettingsStore();
+
+  /**
+   * 키 이벤트와 단축키 문자열 비교
+   * 단축키 형식: "Ctrl+Shift+A", "Space", "ArrowLeft" 등
+   */
+  const matchesShortcut = useCallback((e: KeyboardEvent, shortcut: string): boolean => {
+    const parts = shortcut.split('+');
+    const key = parts[parts.length - 1];
+    const modifiers = parts.slice(0, -1);
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+    // 수정자 키 확인
+    const requiresCtrl = modifiers.includes('Ctrl') || modifiers.includes('Cmd');
+    const requiresShift = modifiers.includes('Shift');
+    const requiresAlt = modifiers.includes('Alt');
+
+    const hasCtrl = isMac ? e.metaKey : e.ctrlKey;
+    const hasShift = e.shiftKey;
+    const hasAlt = e.altKey;
+
+    if (requiresCtrl !== hasCtrl) return false;
+    if (requiresShift !== hasShift) return false;
+    if (requiresAlt !== hasAlt) return false;
+
+    // 키 비교 (대소문자 무시)
+    const eventKey = e.key === ' ' ? 'Space' : e.key;
+    return eventKey.toLowerCase() === key.toLowerCase() || eventKey === key;
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -35,139 +65,122 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         return;
       }
 
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+      // 재생/일시정지
+      if (matchesShortcut(e, shortcuts.playPause)) {
+        e.preventDefault();
+        if (source) togglePlay();
+        return;
+      }
 
-      switch (e.key) {
-        // 재생/일시정지
-        case ' ':
-          e.preventDefault();
-          if (source) {
-            togglePlay();
-          }
-          break;
+      // 1초 뒤로
+      if (matchesShortcut(e, shortcuts.seekBackward1s)) {
+        e.preventDefault();
+        if (source) seekToFrame(currentFrame - Math.round(fps));
+        return;
+      }
 
-        // 영상 탐색: 좌/우 = 1초, 상/하 = 5초
-        case 'ArrowLeft':
-          e.preventDefault();
-          if (source) {
-            const delta = e.shiftKey ? 1 : Math.round(fps); // 기본 1초, Shift면 1프레임
-            seekToFrame(currentFrame - delta);
-          }
-          break;
+      // 1초 앞으로
+      if (matchesShortcut(e, shortcuts.seekForward1s)) {
+        e.preventDefault();
+        if (source) seekToFrame(currentFrame + Math.round(fps));
+        return;
+      }
 
-        case 'ArrowRight':
-          e.preventDefault();
-          if (source) {
-            const delta = e.shiftKey ? 1 : Math.round(fps); // 기본 1초, Shift면 1프레임
-            seekToFrame(currentFrame + delta);
-          }
-          break;
+      // 5초 뒤로
+      if (matchesShortcut(e, shortcuts.seekBackward5s)) {
+        e.preventDefault();
+        if (source) seekToFrame(currentFrame - Math.round(fps * 5));
+        return;
+      }
 
-        case 'ArrowUp':
-          e.preventDefault();
-          if (source) {
-            const delta = Math.round(fps * 5); // 5초 앞으로
-            seekToFrame(currentFrame + delta);
-          }
-          break;
+      // 5초 앞으로
+      if (matchesShortcut(e, shortcuts.seekForward5s)) {
+        e.preventDefault();
+        if (source) seekToFrame(currentFrame + Math.round(fps * 5));
+        return;
+      }
 
-        case 'ArrowDown':
-          e.preventDefault();
-          if (source) {
-            const delta = Math.round(fps * 5); // 5초 뒤로
-            seekToFrame(currentFrame - delta);
-          }
-          break;
+      // 1프레임 뒤로
+      if (matchesShortcut(e, shortcuts.seekBackward1Frame)) {
+        e.preventDefault();
+        if (source) seekToFrame(currentFrame - 1);
+        return;
+      }
 
-        // In/Out 포인트
-        case 'i':
-        case 'I':
-          if (!cmdOrCtrl && source) {
-            e.preventDefault();
-            setInPoint();
-          }
-          break;
+      // 1프레임 앞으로
+      if (matchesShortcut(e, shortcuts.seekForward1Frame)) {
+        e.preventDefault();
+        if (source) seekToFrame(currentFrame + 1);
+        return;
+      }
 
-        case 'o':
-        case 'O':
-          if (!cmdOrCtrl && source) {
-            e.preventDefault();
-            setOutPoint();
-          }
-          break;
+      // 타임라인 확대
+      if (matchesShortcut(e, shortcuts.zoomIn)) {
+        e.preventDefault();
+        zoomIn();
+        return;
+      }
 
-        // In/Out 포인트 초기화
-        case 'Escape':
-          e.preventDefault();
-          clearPoints();
-          break;
+      // 타임라인 축소
+      if (matchesShortcut(e, shortcuts.zoomOut)) {
+        e.preventDefault();
+        zoomOut();
+        return;
+      }
 
-        // 새 AD 추가 (Cmd/Ctrl + D)
-        case 'd':
-        case 'D':
-          if (cmdOrCtrl && source) {
-            e.preventDefault();
-            addDescription({
-              tcIn: currentFrame,
-              tcOut: currentFrame + Math.round(fps * 3), // 기본 3초
-              text: '',
-              type: 'scene',
-              voice: '',
-            });
-          }
-          break;
+      // AD 카드 추가
+      if (matchesShortcut(e, shortcuts.addADCard)) {
+        e.preventDefault();
+        if (source) {
+          addDescription({
+            tcIn: currentFrame,
+            tcOut: currentFrame + Math.round(fps * 3),
+            text: '',
+            type: 'scene',
+            voice: '',
+          });
+        }
+        return;
+      }
 
-        // 새 CC 추가 (Cmd/Ctrl + T)
-        case 't':
-        case 'T':
-          if (cmdOrCtrl && source) {
-            e.preventDefault();
-            addCaption({
-              tcIn: currentFrame,
-              tcOut: currentFrame + Math.round(fps * 3), // 기본 3초
-              text: '',
-              speakerId: null,
-              position: 'bottom',
-              align: 'center',
-              type: 'dialogue',
-            });
-          }
-          break;
+      // CC 카드 추가
+      if (matchesShortcut(e, shortcuts.addCCCard)) {
+        e.preventDefault();
+        if (source) {
+          addCaption({
+            tcIn: currentFrame,
+            tcOut: currentFrame + Math.round(fps * 3),
+            text: '',
+            speakerId: null,
+            position: 'bottom',
+            align: 'center',
+            type: 'dialogue',
+          });
+        }
+        return;
+      }
 
-        // 타임라인 줌
-        case '+':
-        case '=': // Shift 없이 + 키 누르면 = 이 들어옴
-          e.preventDefault();
-          zoomIn();
-          break;
+      // In/Out 포인트 (고정 단축키)
+      if (e.key.toLowerCase() === 'i' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (source) setInPoint();
+        return;
+      }
 
-        case '-':
-          e.preventDefault();
-          zoomOut();
-          break;
+      if (e.key.toLowerCase() === 'o' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (source) setOutPoint();
+        return;
+      }
 
-        // J/K/L 재생 컨트롤 (미래 확장용)
-        case 'j':
-        case 'J':
-          // 역재생 또는 느린 재생 (추후 구현)
-          break;
-
-        case 'k':
-        case 'K':
-          // 정지 (추후 구현)
-          break;
-
-        case 'l':
-        case 'L':
-          // 빠른 재생 (추후 구현)
-          break;
-
-        default:
-          break;
+      // Escape - 포인트 초기화
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        clearPoints();
+        return;
       }
     },
-    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame, zoomIn, zoomOut]
+    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame, zoomIn, zoomOut, shortcuts, matchesShortcut]
   );
 
   useEffect(() => {
