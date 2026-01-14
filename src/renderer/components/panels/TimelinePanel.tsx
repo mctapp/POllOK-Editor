@@ -1,13 +1,23 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { useVideoStore, useADStore, useCCStore, useProjectStore, useUIStore } from '../../stores';
+import { useAudioWaveform } from '../../hooks';
+import { Waveform, WaveformLoading, WaveformEmpty } from '../Waveform';
 
 export function TimelinePanel() {
   const { project } = useProjectStore();
-  const { currentFrame, duration, fps, seekToFrame } = useVideoStore();
+  const { source, currentFrame, duration, fps, seekToFrame } = useVideoStore();
   const { descriptions, updateDescription, selectDescription } = useADStore();
   const { captions, updateCaption, selectCaption } = useCCStore();
   const { timelineZoom, zoomIn, zoomOut } = useUIStore();
+
+  // 오디오 웨이브폼 분석
+  const { waveformData, isLoading: isWaveformLoading } = useAudioWaveform(source, {
+    samples: 2000,
+  });
+
+  // 트랙 컨테이너 너비 추적
+  const [trackWidth, setTrackWidth] = useState(0);
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const trackContainerRef = useRef<HTMLDivElement>(null);
@@ -159,6 +169,23 @@ export function TimelinePanel() {
     }
   }, [dragging, handleMouseMove, handleMouseUp]);
 
+  // 트랙 컨테이너 너비 추적
+  useEffect(() => {
+    const container = trackContainerRef.current;
+    if (!container) return;
+
+    const updateWidth = () => {
+      setTrackWidth(container.offsetWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
+
   if (!project) {
     return (
       <div className="h-full bg-dark-surface flex items-center justify-center">
@@ -282,9 +309,22 @@ export function TimelinePanel() {
               ))}
             </div>
 
-            {/* 파형 영역 (플레이스홀더) */}
-            <div className="h-1/3 flex items-center justify-center">
-              <span className="text-xs text-gray-600">오디오 파형 (추후 구현)</span>
+            {/* 오디오 파형 영역 */}
+            <div className="h-1/3 relative overflow-hidden">
+              {isWaveformLoading ? (
+                <WaveformLoading width={trackWidth} height={60} />
+              ) : waveformData && waveformData.peaks.length > 0 ? (
+                <Waveform
+                  peaks={waveformData.peaks}
+                  width={trackWidth}
+                  height={60}
+                  color="#4a5568"
+                  progressColor="#d4a574"
+                  progress={duration > 0 ? currentFrame / duration : 0}
+                />
+              ) : (
+                <WaveformEmpty width={trackWidth} height={60} />
+              )}
             </div>
 
             {/* 재생 위치 인디케이터 */}
