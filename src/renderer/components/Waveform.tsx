@@ -73,44 +73,68 @@ export function Waveform({
 }
 
 // 로딩 상태 컴포넌트
-export function WaveformLoading({ width, height }: { width: number; height: number }) {
+interface WaveformLoadingProps {
+  width?: number;
+  height: number;
+  message?: string;
+  progress?: number;
+}
+
+export function WaveformLoading({ height, message, progress }: WaveformLoadingProps) {
   return (
     <div
-      style={{ width, height }}
-      className="flex items-center justify-center bg-dark-surface/50"
+      style={{ height }}
+      className="w-full flex items-center justify-center bg-dark-surface/30"
     >
-      <div className="flex items-center gap-1">
-        <div className="w-1 h-3 bg-gray-600 animate-pulse" style={{ animationDelay: '0ms' }} />
-        <div className="w-1 h-5 bg-gray-600 animate-pulse" style={{ animationDelay: '100ms' }} />
-        <div className="w-1 h-4 bg-gray-600 animate-pulse" style={{ animationDelay: '200ms' }} />
-        <div className="w-1 h-6 bg-gray-600 animate-pulse" style={{ animationDelay: '300ms' }} />
-        <div className="w-1 h-3 bg-gray-600 animate-pulse" style={{ animationDelay: '400ms' }} />
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0.5">
+          <div className="w-1 h-3 bg-gray-600 animate-pulse" style={{ animationDelay: '0ms' }} />
+          <div className="w-1 h-5 bg-gray-600 animate-pulse" style={{ animationDelay: '100ms' }} />
+          <div className="w-1 h-4 bg-gray-600 animate-pulse" style={{ animationDelay: '200ms' }} />
+          <div className="w-1 h-6 bg-gray-600 animate-pulse" style={{ animationDelay: '300ms' }} />
+          <div className="w-1 h-3 bg-gray-600 animate-pulse" style={{ animationDelay: '400ms' }} />
+        </div>
+        <span className="text-xs text-gray-500">
+          {message || '오디오 파형 생성 중...'}
+          {progress !== undefined && progress > 0 && progress < 100 && ` (${progress}%)`}
+        </span>
       </div>
-      <span className="ml-2 text-xs text-gray-500">웨이브폼 분석 중...</span>
     </div>
   );
 }
 
 // 에러 상태 컴포넌트
-export function WaveformError({ width, height, message }: { width: number; height: number; message?: string }) {
+interface WaveformErrorProps {
+  width?: number;
+  height: number;
+  message?: string;
+}
+
+export function WaveformError({ height, message }: WaveformErrorProps) {
   return (
     <div
-      style={{ width, height }}
-      className="flex items-center justify-center bg-dark-surface/50"
+      style={{ height }}
+      className="w-full flex items-center justify-center bg-dark-surface/30"
     >
-      <span className="text-xs text-gray-600">{message || '웨이브폼을 불러올 수 없습니다'}</span>
+      <span className="text-xs text-gray-500">{message || '웨이브폼을 불러올 수 없습니다'}</span>
     </div>
   );
 }
 
 // 빈 상태 컴포넌트
-export function WaveformEmpty({ width, height }: { width: number; height: number }) {
+interface WaveformEmptyProps {
+  width?: number;
+  height: number;
+  message?: string;
+}
+
+export function WaveformEmpty({ height, message }: WaveformEmptyProps) {
   return (
     <div
-      style={{ width, height }}
-      className="flex items-center justify-center"
+      style={{ height }}
+      className="w-full flex items-center justify-center bg-dark-surface/20"
     >
-      <span className="text-xs text-gray-600">영상을 불러오면 오디오 파형이 표시됩니다</span>
+      <span className="text-xs text-gray-600">{message || '영상을 불러오면 오디오 파형이 표시됩니다'}</span>
     </div>
   );
 }
