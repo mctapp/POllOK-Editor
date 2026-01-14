@@ -145,4 +145,34 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
       }
     }
   );
+
+  // 녹음 파일 저장
+  ipcMain.handle(
+    IpcChannels.RECORDING_SAVE,
+    async (_, data: { cardId: string; audioData: number[] }) => {
+      try {
+        // 사용자 문서 폴더에 recordings 폴더 생성
+        const { app } = await import('electron');
+        const path = await import('path');
+        const recordingsDir = path.join(app.getPath('documents'), 'AccessON', 'recordings');
+
+        // 폴더가 없으면 생성
+        await fs.mkdir(recordingsDir, { recursive: true });
+
+        // 파일 이름 생성 (cardId + timestamp)
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `${data.cardId}_${timestamp}.webm`;
+        const filePath = path.join(recordingsDir, fileName);
+
+        // 오디오 데이터를 파일로 저장
+        const buffer = Buffer.from(data.audioData);
+        await fs.writeFile(filePath, buffer);
+
+        return filePath;
+      } catch (error) {
+        console.error('Failed to save recording:', error);
+        throw error;
+      }
+    }
+  );
 }

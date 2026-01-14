@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Volume2, Clock, CheckSquare, Square, History, RotateCcw } from 'lucide-react';
+import { Pencil, Trash2, Volume2, Clock, CheckSquare, Square, History, RotateCcw, StickyNote, Mic, MicOff } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
-import { useADStore, useVideoStore } from '../../stores';
+import { useADStore, useVideoStore, useMemoStore } from '../../stores';
 import { AD_TYPE_OPTIONS } from '../../../shared/constants';
+import { MemoDialog } from '../MemoDialog';
 
 interface ADCardProps {
   description: AudioDescription;
@@ -17,6 +18,10 @@ export function ADCard({ description }: ADCardProps) {
   const [editTcOut, setEditTcOut] = useState('');
   const [isEditingTimecode, setIsEditingTimecode] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+  const [showMemoDialog, setShowMemoDialog] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // 버전 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -41,7 +46,9 @@ export function ADCard({ description }: ADCardProps) {
     setEditingId,
   } = useADStore();
   const { fps, seekToFrame } = useVideoStore();
+  const { getMemoCount } = useMemoStore();
 
+  const memoCount = getMemoCount(description.id, 'ad');
   const isSelected = selectedIds.includes(description.id);
   const isEditing = editingId === description.id;
 
@@ -173,7 +180,70 @@ export function ADCard({ description }: ADCardProps) {
     updateDescription(description.id, { needsReview: !description.needsReview });
   };
 
+  // 녹음 시작/중지
+  const handleToggleRecording = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (isRecording) {
+      // 녹음 중지
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
+    } else {
+      // 녹음 시작
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          // 파일 저장 (main process로 전달)
+          try {
+            const filePath = await window.api.saveRecording(description.id, Array.from(uint8Array));
+            if (filePath) {
+              updateDescription(description.id, { audioFile: filePath });
+            }
+          } catch (error) {
+            console.error('녹음 파일 저장 실패:', error);
+          }
+
+          // 스트림 정리
+          stream.getTracks().forEach((track) => track.stop());
+          setIsRecording(false);
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error('마이크 접근 실패:', error);
+      }
+    }
+  };
+
+  const handleOpenMemo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMemoDialog(true);
+  };
+
   return (
+    <>
+      <MemoDialog
+        isOpen={showMemoDialog}
+        onClose={() => setShowMemoDialog(false)}
+        cardId={description.id}
+        cardType="ad"
+      />
     <div
       className={`p-3 rounded-lg border transition-colors cursor-pointer ${
         isSelected
@@ -295,6 +365,37 @@ export function ADCard({ description }: ADCardProps) {
         </div>
 
         <div className="flex items-center gap-1">
+          {/* 녹음 버튼 */}
+          <button
+            onClick={handleToggleRecording}
+            className={`p-1.5 transition-colors ${
+              isRecording
+                ? 'text-red-500 animate-pulse'
+                : description.audioFile
+                ? 'text-accent-green hover:text-accent-green/80'
+                : 'text-gray-500 hover:text-white'
+            }`}
+            title={isRecording ? '녹음 중지' : description.audioFile ? '녹음 파일 있음' : '녹음 시작'}
+          >
+            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+          {/* 메모 버튼 */}
+          <button
+            onClick={handleOpenMemo}
+            className={`p-1.5 transition-colors relative ${
+              memoCount > 0
+                ? 'text-accent-yellow hover:text-accent-yellow/80'
+                : 'text-gray-500 hover:text-white'
+            }`}
+            title={`메모 ${memoCount > 0 ? `(${memoCount})` : ''}`}
+          >
+            <StickyNote className="w-4 h-4" />
+            {memoCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-accent-yellow text-dark-bg text-[10px] rounded-full flex items-center justify-center font-medium">
+                {memoCount}
+              </span>
+            )}
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -394,5 +495,6 @@ export function ADCard({ description }: ADCardProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -34,6 +34,18 @@ export interface TextVersion {
   savedAt: string;
 }
 
+// Memo Types
+export interface Memo {
+  id: string;
+  title: string;
+  content: string;
+  completed: boolean;
+  cardId: string; // AD 또는 CC 카드 ID
+  cardType: 'ad' | 'cc';
+  createdAt: string;
+  modifiedAt: string;
+}
+
 // Audio Description Types
 export interface AudioDescription {
   id: string;
@@ -45,6 +57,7 @@ export interface AudioDescription {
   status: Status;
   needsReview: boolean; // 검토 필요 체크
   versions?: TextVersion[]; // 버전 기록
+  audioFile?: string; // 녹음 파일 경로
   createdAt: string;
   modifiedAt: string;
 }
@@ -110,4 +123,7 @@ export const IpcChannels = {
   TTS_SPEAK: 'tts:speak',
   TTS_STOP: 'tts:stop',
   TTS_GET_VOICES: 'tts:getVoices',
+
+  // Recording
+  RECORDING_SAVE: 'recording:save',
 } as const;

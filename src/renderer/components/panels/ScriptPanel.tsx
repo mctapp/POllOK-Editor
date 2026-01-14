@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, Focus, CheckSquare } from 'lucide-react';
-import { useUIStore, useADStore, useCCStore, useVideoStore, useProjectStore } from '../../stores';
+import { Plus, Search, Focus, CheckSquare, StickyNote } from 'lucide-react';
+import { useUIStore, useADStore, useCCStore, useVideoStore, useProjectStore, useMemoStore } from '../../stores';
 import { ADCard } from './ADCard';
 import { CCCard } from './CCCard';
+import { MemoPanel } from './MemoPanel';
 
 export function ScriptPanel() {
   const { activeTab, setActiveTab, focusMode, toggleFocusMode, showReviewOnly, toggleReviewOnly, searchQuery, setSearchQuery } = useUIStore();
   const { project } = useProjectStore();
   const { descriptions, addDescription, selectedIds: adSelectedIds } = useADStore();
   const { captions, addCaption, selectedIds: ccSelectedIds } = useCCStore();
+  const { memos } = useMemoStore();
   const { currentFrame } = useVideoStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -120,62 +122,83 @@ export function ScriptPanel() {
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-green" />
           )}
         </button>
+        <button
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
+            activeTab === 'memo'
+              ? 'text-accent-yellow'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+          onClick={() => setActiveTab('memo')}
+        >
+          <StickyNote className="w-4 h-4" />
+          Memo ({memos.length})
+          {activeTab === 'memo' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-yellow" />
+          )}
+        </button>
 
         <div className="flex-1" />
 
-        <button
-          onClick={activeTab === 'ad' ? handleAddAD : handleAddCC}
-          className="flex items-center gap-1.5 px-3 py-1.5 mr-2 text-sm bg-brand-brown hover:bg-brand-brown/80 rounded transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          추가
-        </button>
+        {activeTab !== 'memo' && (
+          <button
+            onClick={activeTab === 'ad' ? handleAddAD : handleAddCC}
+            className="flex items-center gap-1.5 px-3 py-1.5 mr-2 text-sm bg-brand-brown hover:bg-brand-brown/80 rounded transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            추가
+          </button>
+        )}
       </div>
 
-      {/* 툴바 (검색, 필터) */}
-      <div className="flex items-center gap-2 p-2 border-b border-dark-border bg-dark-surface/50">
-        {/* 검색 */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`${activeTab === 'ad' ? 'AD' : 'CC'} 검색...`}
-            className="w-full pl-8 pr-3 py-1.5 text-sm bg-dark-bg border border-dark-border rounded focus:border-brand-brown focus:outline-none text-white placeholder:text-gray-600"
-          />
-        </div>
+      {/* 메모 탭 */}
+      {activeTab === 'memo' ? (
+        <MemoPanel />
+      ) : (
+        <>
+          {/* 툴바 (검색, 필터) */}
+          <div className="flex items-center gap-2 p-2 border-b border-dark-border bg-dark-surface/50">
+            {/* 검색 */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`${activeTab === 'ad' ? 'AD' : 'CC'} 검색...`}
+                className="w-full pl-8 pr-3 py-1.5 text-sm bg-dark-bg border border-dark-border rounded focus:border-brand-brown focus:outline-none text-white placeholder:text-gray-600"
+              />
+            </div>
 
-        {/* 포커스 모드 */}
-        <button
-          onClick={toggleFocusMode}
-          className={`p-1.5 rounded transition-colors ${
-            focusMode
-              ? 'bg-accent-yellow text-brand-black'
-              : 'text-gray-500 hover:text-white hover:bg-dark-bg'
-          }`}
-          title="포커스 모드 (최근 4개만 표시)"
-        >
-          <Focus className="w-4 h-4" />
-        </button>
+            {/* 포커스 모드 */}
+            <button
+              onClick={toggleFocusMode}
+              className={`p-1.5 rounded transition-colors ${
+                focusMode
+                  ? 'bg-accent-yellow text-brand-black'
+                  : 'text-gray-500 hover:text-white hover:bg-dark-bg'
+              }`}
+              title="포커스 모드 (최근 4개만 표시)"
+            >
+              <Focus className="w-4 h-4" />
+            </button>
 
-        {/* 검토 필터 */}
-        <button
-          onClick={toggleReviewOnly}
-          className={`p-1.5 rounded transition-colors ${
-            showReviewOnly
-              ? 'bg-accent-green text-white'
-              : 'text-gray-500 hover:text-white hover:bg-dark-bg'
-          }`}
-          title="검토 필요 항목만 표시"
-        >
-          <CheckSquare className="w-4 h-4" />
-        </button>
-      </div>
+            {/* 검토 필터 */}
+            <button
+              onClick={toggleReviewOnly}
+              className={`p-1.5 rounded transition-colors ${
+                showReviewOnly
+                  ? 'bg-accent-green text-white'
+                  : 'text-gray-500 hover:text-white hover:bg-dark-bg'
+              }`}
+              title="검토 필요 항목만 표시"
+            >
+              <CheckSquare className="w-4 h-4" />
+            </button>
+          </div>
 
-      {/* 콘텐츠 영역 */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
-        {activeTab === 'ad' ? (
+          {/* 콘텐츠 영역 */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
+            {activeTab === 'ad' ? (
           filteredDescriptions.length > 0 ? (
             filteredDescriptions.map((desc) => <ADCard key={desc.id} description={desc} />)
           ) : descriptions.length > 0 ? (
@@ -192,9 +215,11 @@ export function ScriptPanel() {
             <p className="text-gray-500 text-sm">필터 조건에 맞는 항목이 없습니다.</p>
           </div>
         ) : (
-          <EmptyState type="cc" onAdd={handleAddCC} />
-        )}
-      </div>
+              <EmptyState type="cc" onAdd={handleAddCC} />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

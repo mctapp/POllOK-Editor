@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Clock, User, CheckSquare, Square, History, RotateCcw } from 'lucide-react';
+import { Pencil, Trash2, Clock, User, CheckSquare, Square, History, RotateCcw, StickyNote } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
-import { useCCStore, useVideoStore } from '../../stores';
+import { useCCStore, useVideoStore, useMemoStore } from '../../stores';
 import { CC_TYPE_OPTIONS } from '../../../shared/constants';
+import { MemoDialog } from '../MemoDialog';
 
 interface CCCardProps {
   caption: Caption;
@@ -17,6 +18,10 @@ export function CCCard({ caption }: CCCardProps) {
   const [editTcOut, setEditTcOut] = useState('');
   const [isEditingTimecode, setIsEditingTimecode] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+  const [showMemoDialog, setShowMemoDialog] = useState(false);
+
+  const { getMemoCount } = useMemoStore();
+  const memoCount = getMemoCount(caption.id, 'cc');
 
   // 버전 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -175,6 +180,11 @@ export function CCCard({ caption }: CCCardProps) {
     updateCaption(caption.id, { needsReview: !caption.needsReview });
   };
 
+  const handleOpenMemo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMemoDialog(true);
+  };
+
   const getTypeIcon = () => {
     switch (caption.type) {
       case 'effect':
@@ -189,17 +199,24 @@ export function CCCard({ caption }: CCCardProps) {
   };
 
   return (
-    <div
-      className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-        isSelected
-          ? 'bg-accent-green/20 border-accent-green'
-          : caption.needsReview
-          ? 'bg-dark-surface border-accent-yellow/50'
-          : 'bg-dark-surface border-dark-border hover:border-gray-500'
-      }`}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-    >
+    <>
+      <MemoDialog
+        isOpen={showMemoDialog}
+        onClose={() => setShowMemoDialog(false)}
+        cardId={caption.id}
+        cardType="cc"
+      />
+      <div
+        className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+          isSelected
+            ? 'bg-accent-green/20 border-accent-green'
+            : caption.needsReview
+            ? 'bg-dark-surface border-accent-yellow/50'
+            : 'bg-dark-surface border-dark-border hover:border-gray-500'
+        }`}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+      >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -313,6 +330,23 @@ export function CCCard({ caption }: CCCardProps) {
         </div>
 
         <div className="flex items-center gap-1">
+          {/* 메모 버튼 */}
+          <button
+            onClick={handleOpenMemo}
+            className={`p-1.5 transition-colors relative ${
+              memoCount > 0
+                ? 'text-accent-yellow hover:text-accent-yellow/80'
+                : 'text-gray-500 hover:text-white'
+            }`}
+            title={`메모 ${memoCount > 0 ? `(${memoCount})` : ''}`}
+          >
+            <StickyNote className="w-4 h-4" />
+            {memoCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-accent-yellow text-dark-bg text-[10px] rounded-full flex items-center justify-center font-medium">
+                {memoCount}
+              </span>
+            )}
+          </button>
           <div className="relative" ref={versionDropdownRef}>
             <button
               onClick={(e) => {
@@ -402,5 +436,6 @@ export function CCCard({ caption }: CCCardProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }

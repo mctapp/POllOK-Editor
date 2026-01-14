@@ -41,6 +41,10 @@ const api = {
     return () => ipcRenderer.removeListener(channel, listener);
   },
 
+  // 녹음
+  saveRecording: (cardId: string, audioData: number[]): Promise<string | null> =>
+    ipcRenderer.invoke(IpcChannels.RECORDING_SAVE, { cardId, audioData }),
+
   // 플랫폼 정보
   platform: process.platform,
 
