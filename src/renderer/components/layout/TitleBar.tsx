@@ -23,8 +23,8 @@ export function TitleBar() {
   }, []);
 
   const title = project
-    ? `${isDirty ? '● ' : ''}${project.title} - AccessFlow`
-    : 'AccessFlow';
+    ? `${isDirty ? '● ' : ''}${project.title} - AccessON`
+    : 'AccessON';
 
   return (
     <div className="h-8 bg-dark-surface flex items-center justify-between select-none border-b border-dark-border">

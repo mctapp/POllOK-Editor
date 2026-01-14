@@ -1,6 +1,6 @@
-appId: com.accessflow.app
-productName: AccessFlow
-copyright: Copyright 2026 AccessFlow Team
+appId: com.accesson.app
+productName: AccessON
+copyright: Copyright 2026 AccessON Team
 
 directories:
   output: release

@@ -131,4 +131,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
       return result.filePath;
     }
   );
+
+  // 파일 내보내기 (쓰기)
+  ipcMain.handle(
+    IpcChannels.EXPORT_WRITE_FILE,
+    async (_, data: { path: string; content: string }) => {
+      try {
+        await fs.writeFile(data.path, data.content, 'utf-8');
+        return true;
+      } catch (error) {
+        console.error('Failed to export file:', error);
+        throw error;
+      }
+    }
+  );
 }

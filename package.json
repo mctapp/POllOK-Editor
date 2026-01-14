@@ -1,9 +1,9 @@
 {
-  "name": "accessflow",
+  "name": "accesson",
   "version": "0.1.0",
   "description": "AD/CC Script Editor for accessibility",
   "main": "out/main/index.js",
-  "author": "AccessFlow Team",
+  "author": "AccessON Team",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",

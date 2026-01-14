@@ -1,6 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronRight } from 'lucide-react';
-import { useProjectStore, useUIStore } from '../../stores';
+import { useProjectStore, useUIStore, useADStore, useCCStore, useVideoStore } from '../../stores';
 
 interface MenuItem {
   label: string;
@@ -12,10 +12,113 @@ interface MenuItem {
 }
 
 export function MenuBar() {
-  const { createProject, saveProject, closeProject } = useProjectStore();
+  const { project, createProject, saveProject, closeProject } = useProjectStore();
   const { setOpenDialog, setActiveTab } = useUIStore();
+  const { descriptions } = useADStore();
+  const { captions } = useCCStore();
+  const { fps } = useVideoStore();
   const isMac = window.api.platform === 'darwin';
   const modKey = isMac ? '⌘' : 'Ctrl';
+
+  // 타임코드 포맷
+  const formatTimecode = (frame: number) => {
+    const totalSeconds = frame / fps;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const ms = Math.floor((totalSeconds % 1) * 1000);
+    return { hours, minutes, seconds, ms, totalSeconds };
+  };
+
+  // SRT 형식 내보내기
+  const handleExportSRT = async () => {
+    if (!project || captions.length === 0) return;
+
+    const path = await window.api.export.selectPath({
+      defaultPath: `${project.title}.srt`,
+      filters: [{ name: 'SRT Subtitle', extensions: ['srt'] }],
+    });
+
+    if (!path) return;
+
+    const content = captions
+      .map((cap, index) => {
+        const start = formatTimecode(cap.tcIn);
+        const end = formatTimecode(cap.tcOut);
+        const startStr = `${String(start.hours).padStart(2, '0')}:${String(start.minutes).padStart(2, '0')}:${String(start.seconds).padStart(2, '0')},${String(start.ms).padStart(3, '0')}`;
+        const endStr = `${String(end.hours).padStart(2, '0')}:${String(end.minutes).padStart(2, '0')}:${String(end.seconds).padStart(2, '0')},${String(end.ms).padStart(3, '0')}`;
+        return `${index + 1}\n${startStr} --> ${endStr}\n${cap.text}\n`;
+      })
+      .join('\n');
+
+    await window.api.export.writeFile({ path, content });
+  };
+
+  // VTT 형식 내보내기
+  const handleExportVTT = async () => {
+    if (!project || captions.length === 0) return;
+
+    const path = await window.api.export.selectPath({
+      defaultPath: `${project.title}.vtt`,
+      filters: [{ name: 'WebVTT Subtitle', extensions: ['vtt'] }],
+    });
+
+    if (!path) return;
+
+    const cues = captions
+      .map((cap) => {
+        const start = formatTimecode(cap.tcIn);
+        const end = formatTimecode(cap.tcOut);
+        const startStr = `${String(start.hours).padStart(2, '0')}:${String(start.minutes).padStart(2, '0')}:${String(start.seconds).padStart(2, '0')}.${String(start.ms).padStart(3, '0')}`;
+        const endStr = `${String(end.hours).padStart(2, '0')}:${String(end.minutes).padStart(2, '0')}:${String(end.seconds).padStart(2, '0')}.${String(end.ms).padStart(3, '0')}`;
+        return `${startStr} --> ${endStr}\n${cap.text}\n`;
+      })
+      .join('\n');
+
+    const content = `WEBVTT\n\n${cues}`;
+    await window.api.export.writeFile({ path, content });
+  };
+
+  // JSON 형식 내보내기
+  const handleExportJSON = async () => {
+    if (!project) return;
+
+    const path = await window.api.export.selectPath({
+      defaultPath: `${project.title}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+
+    if (!path) return;
+
+    const data = {
+      project: {
+        title: project.title,
+        fps,
+      },
+      audioDescriptions: descriptions.map((desc) => ({
+        id: desc.id,
+        tcIn: desc.tcIn,
+        tcOut: desc.tcOut,
+        tcInSeconds: formatTimecode(desc.tcIn).totalSeconds,
+        tcOutSeconds: formatTimecode(desc.tcOut).totalSeconds,
+        text: desc.text,
+        type: desc.type,
+      })),
+      captions: captions.map((cap) => ({
+        id: cap.id,
+        tcIn: cap.tcIn,
+        tcOut: cap.tcOut,
+        tcInSeconds: formatTimecode(cap.tcIn).totalSeconds,
+        tcOutSeconds: formatTimecode(cap.tcOut).totalSeconds,
+        text: cap.text,
+        type: cap.type,
+        speakerId: cap.speakerId,
+      })),
+    };
+
+    const content = JSON.stringify(data, null, 2);
+    await window.api.export.writeFile({ path, content });
+  };
 
   const handleNewProject = () => {
     createProject('새 프로젝트');
@@ -93,24 +196,18 @@ export function MenuBar() {
       {
         label: '자막 형식',
         submenu: [
-          { label: 'SRT (SubRip)', disabled: true },
-          { label: 'VTT (WebVTT)', disabled: true },
+          { label: 'SRT (SubRip)', action: handleExportSRT, disabled: !project || captions.length === 0 },
+          { label: 'VTT (WebVTT)', action: handleExportVTT, disabled: !project || captions.length === 0 },
           { label: 'STL (EBU)', disabled: true },
         ],
       },
       {
         label: '문서 형식',
         submenu: [
+          { label: 'JSON', action: handleExportJSON, disabled: !project },
           { label: 'Excel (.xlsx)', disabled: true },
           { label: 'CSV', disabled: true },
         ],
-      },
-      { separator: true },
-      {
-        label: '내보내기...',
-        shortcut: `${modKey}+E`,
-        action: () => setOpenDialog('export'),
-        disabled: true,
       },
     ],
     Help: [
@@ -119,7 +216,7 @@ export function MenuBar() {
       { separator: true },
       { label: '업데이트 확인...', disabled: true },
       { separator: true },
-      { label: 'AccessFlow 정보', action: () => setOpenDialog('about') },
+      { label: 'AccessON 정보', action: () => setOpenDialog('about') },
     ],
   };
 

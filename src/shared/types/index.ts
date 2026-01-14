@@ -103,9 +103,8 @@ export const IpcChannels = {
   FILE_GET_VIDEO_PATH: 'file:getVideoPath',
 
   // Export
-  EXPORT_SRT: 'export:srt',
-  EXPORT_VTT: 'export:vtt',
   EXPORT_SELECT_PATH: 'export:selectPath',
+  EXPORT_WRITE_FILE: 'export:writeFile',
 
   // TTS
   TTS_SPEAK: 'tts:speak',

@@ -20,7 +20,7 @@ export const SUPPORTED_VIDEO_FORMATS = [
 // 지원하는 프로젝트 형식
 export const PROJECT_EXTENSION = '.afproj';
 export const PROJECT_FILE_FILTER = {
-  name: 'AccessFlow Project',
+  name: 'AccessON Project',
   extensions: ['afproj'],
 };
 

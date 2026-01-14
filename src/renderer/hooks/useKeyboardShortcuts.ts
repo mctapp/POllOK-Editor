@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useVideoStore, useADStore, useCCStore } from '../stores';
+import { useVideoStore, useADStore, useCCStore, useUIStore } from '../stores';
 
 interface KeyboardShortcutsOptions {
   enabled?: boolean;
@@ -21,6 +21,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
 
   const { addDescription } = useADStore();
   const { addCaption } = useCCStore();
+  const { zoomIn, zoomOut } = useUIStore();
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -134,6 +135,18 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
           }
           break;
 
+        // 타임라인 줌
+        case '+':
+        case '=': // Shift 없이 + 키 누르면 = 이 들어옴
+          e.preventDefault();
+          zoomIn();
+          break;
+
+        case '-':
+          e.preventDefault();
+          zoomOut();
+          break;
+
         // J/K/L 재생 컨트롤 (미래 확장용)
         case 'j':
         case 'J':
@@ -154,7 +167,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
           break;
       }
     },
-    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame]
+    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame, zoomIn, zoomOut]
   );
 
   useEffect(() => {
