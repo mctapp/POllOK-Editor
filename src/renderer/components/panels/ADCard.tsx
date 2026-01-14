@@ -11,11 +11,13 @@ import {
   Mic,
   Play,
   StopCircle,
+  MessageSquare,
 } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
-import { useADStore, useVideoStore, useMemoStore, useUIStore, useProjectStore, useSettingsStore } from '../../stores';
+import { useADStore, useVideoStore, useMemoStore, useUIStore, useProjectStore, useSettingsStore, useFeedbackStore } from '../../stores';
 import { AD_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
+import { FeedbackDialog } from '../FeedbackDialog';
 
 interface ADCardProps {
   description: AudioDescription;
@@ -37,6 +39,7 @@ export function ADCard({ description }: ADCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -65,12 +68,16 @@ export function ADCard({ description }: ADCardProps) {
   } = useADStore();
   const { fps, seekToFrame, currentFrame, isPlaying: videoIsPlaying } = useVideoStore();
   const { getMemosForCard } = useMemoStore();
-  const { setActiveTab } = useUIStore();
+  const { setActiveTab, appMode } = useUIStore();
   const { filePath: projectPath } = useProjectStore();
   const { script } = useSettingsStore();
+  const { getFeedbacksForCard } = useFeedbackStore();
 
   const cardMemos = getMemosForCard(description.id, 'ad');
   const memoCount = cardMemos.length;
+  const cardFeedbacks = getFeedbacksForCard(description.id, 'ad');
+  const feedbackCount = cardFeedbacks.length;
+  const pendingFeedbackCount = cardFeedbacks.filter((f) => f.status === 'pending').length;
   const isSelected = selectedIds.includes(description.id);
   const isEditing = editingId === description.id;
   const hasRecording = !!description.audioFile;
@@ -355,6 +362,13 @@ export function ADCard({ description }: ADCardProps) {
         cardType="ad"
       />
 
+      <FeedbackDialog
+        isOpen={showFeedbackDialog}
+        onClose={() => setShowFeedbackDialog(false)}
+        cardId={description.id}
+        cardType="ad"
+      />
+
       {/* 재녹음 확인 다이얼로그 */}
       {showConfirmDialog && (
         <div
@@ -498,7 +512,7 @@ export function ADCard({ description }: ADCardProps) {
               </div>
             )}
           </div>
-          <span className="text-xs px-2 py-0.5 bg-dark-bg rounded text-gray-400">
+          <span className="text-xs px-2 py-0.5 rounded text-gray-400 border border-dark-border/50">
             {typeLabel}
           </span>
         </div>
@@ -554,6 +568,38 @@ export function ADCard({ description }: ADCardProps) {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* 피드백 버튼 (감수자 모드) */}
+            {appMode === 'reviewer' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFeedbackDialog(true);
+                }}
+                className={`p-1.5 transition-colors ${
+                  pendingFeedbackCount > 0
+                    ? 'text-orange-400 hover:text-orange-300'
+                    : feedbackCount > 0
+                    ? 'text-accent-green hover:text-accent-green/80'
+                    : 'text-gray-500 hover:text-white'
+                }`}
+                title={feedbackCount > 0 ? `피드백 ${feedbackCount}개 (미해결 ${pendingFeedbackCount}개)` : '피드백 추가'}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
+            )}
+            {/* 피드백 표시 (작가 모드) */}
+            {appMode === 'writer' && pendingFeedbackCount > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveTab('feedback');
+                }}
+                className="p-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+                title={`미해결 피드백 ${pendingFeedbackCount}개`}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
+            )}
             {/* 메모 버튼 */}
             <button
               onClick={handleMemoClick}

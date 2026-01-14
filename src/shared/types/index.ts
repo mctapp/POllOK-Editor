@@ -107,6 +107,35 @@ export interface WaveformCache {
   analyzedAt: string;
 }
 
+// Guide Types (감수 가이드)
+export interface GuideItem {
+  code: string; // A01, B01, etc.
+  category: string; // 유개념: WHEN, WHAT, etc.
+  majorCategory: string; // 대분류
+  minorCategory: string; // 소분류
+  principle: string; // 원칙/규칙
+  violationProblem: string; // 위반 시 문제
+  correctExample: string; // 올바른 예시
+  wrongExample: string; // 잘못된 예시
+}
+
+// Feedback Types (감수자 피드백)
+export interface Feedback {
+  id: string;
+  cardId: string; // AD 또는 CC 카드 ID
+  cardType: 'ad' | 'cc';
+  guideCode: string; // 가이드 코드 (A01, B01, etc.)
+  comment: string; // 세부 커멘트
+  status: FeedbackStatus;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export type FeedbackStatus = 'pending' | 'resolved';
+
+// App Mode Types
+export type AppMode = 'writer' | 'reviewer';
+
 // IPC Channels
 export const IpcChannels = {
   // Window

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, Focus, CheckSquare, StickyNote, AudioLines, Subtitles } from 'lucide-react';
-import { useUIStore, useADStore, useCCStore, useVideoStore, useProjectStore, useMemoStore } from '../../stores';
+import { Plus, Search, Focus, CheckSquare, StickyNote, AudioLines, Subtitles, MessageSquare } from 'lucide-react';
+import { useUIStore, useADStore, useCCStore, useVideoStore, useProjectStore, useMemoStore, useFeedbackStore } from '../../stores';
 import { ADCard } from './ADCard';
 import { CCCard } from './CCCard';
 import { MemoPanel } from './MemoPanel';
+import { FeedbackPanel } from './FeedbackPanel';
 
 export function ScriptPanel() {
   const { activeTab, setActiveTab, focusMode, toggleFocusMode, showReviewOnly, toggleReviewOnly, searchQuery, setSearchQuery } = useUIStore();
@@ -11,6 +12,7 @@ export function ScriptPanel() {
   const { descriptions, addDescription, selectedIds: adSelectedIds } = useADStore();
   const { captions, addCaption, selectedIds: ccSelectedIds } = useCCStore();
   const { memos } = useMemoStore();
+  const { feedbacks } = useFeedbackStore();
   const { currentFrame } = useVideoStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -138,10 +140,24 @@ export function ScriptPanel() {
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-yellow" />
           )}
         </button>
+        <button
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
+            activeTab === 'feedback'
+              ? 'text-orange-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+          onClick={() => setActiveTab('feedback')}
+        >
+          <MessageSquare className="w-4 h-4" />
+          피드백 ({feedbacks.length})
+          {activeTab === 'feedback' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-400" />
+          )}
+        </button>
 
         <div className="flex-1" />
 
-        {activeTab !== 'memo' && (
+        {(activeTab === 'ad' || activeTab === 'cc') && (
           <button
             onClick={activeTab === 'ad' ? handleAddAD : handleAddCC}
             className="flex items-center gap-1.5 px-3 py-1.5 mr-2 text-sm bg-brand-brown hover:bg-brand-brown/80 rounded transition-colors"
@@ -152,9 +168,11 @@ export function ScriptPanel() {
         )}
       </div>
 
-      {/* 메모 탭 */}
+      {/* 메모/피드백 탭 */}
       {activeTab === 'memo' ? (
         <MemoPanel />
+      ) : activeTab === 'feedback' ? (
+        <FeedbackPanel />
       ) : (
         <>
           {/* 툴바 (검색, 필터) */}

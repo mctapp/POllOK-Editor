@@ -6,6 +6,7 @@ import { PanelSplitter } from './PanelSplitter';
 import { VideoPanel } from '../panels/VideoPanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import { TimelinePanel } from '../panels/TimelinePanel';
+import { GuidePanel } from '../panels/GuidePanel';
 import { useUIStore } from '../../stores';
 
 export function MainLayout() {
@@ -56,8 +57,12 @@ export function MainLayout() {
           <PanelSplitter direction="vertical" onResize={handleLeftResize} />
 
           {/* 오른쪽: 스크립트 에디터 (30%) */}
-          <div className="flex-1 overflow-hidden" style={{ minWidth: '15%' }}>
-            <ScriptPanel />
+          <div className="flex-1 overflow-hidden flex" style={{ minWidth: '15%' }}>
+            <div className="flex-1 overflow-hidden">
+              <ScriptPanel />
+            </div>
+            {/* 가이드 패널 */}
+            <GuidePanel />
           </div>
         </div>
 
