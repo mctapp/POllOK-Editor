@@ -107,6 +107,46 @@ export interface WaveformCache {
   analyzedAt: string;
 }
 
+// User Mode Types
+export type UserMode = 'writer' | 'reviewer';
+
+// Feedback Types (감수자가 작가에게 남기는 피드백)
+export interface Feedback {
+  id: string;
+  cardId: string;
+  cardType: 'ad' | 'cc';
+  category: FeedbackCategory;
+  content: string;
+  status: FeedbackStatus;
+  reviewerName?: string;
+  createdAt: string;
+  modifiedAt: string;
+  resolvedAt?: string;
+}
+
+// 피드백 카테고리 (기본 가이드)
+export type FeedbackCategory =
+  | 'timing' // 타이밍 조정 필요
+  | 'wording' // 표현 수정 필요
+  | 'accuracy' // 정확성 확인 필요
+  | 'missing' // 누락된 내용
+  | 'redundant' // 불필요한 내용
+  | 'style' // 스타일 가이드 준수
+  | 'other'; // 기타
+
+export type FeedbackStatus = 'pending' | 'in_progress' | 'resolved' | 'rejected';
+
+// 피드백 카테고리 라벨
+export const FEEDBACK_CATEGORY_LABELS: Record<FeedbackCategory, string> = {
+  timing: '타이밍 조정',
+  wording: '표현 수정',
+  accuracy: '정확성 확인',
+  missing: '누락된 내용',
+  redundant: '불필요한 내용',
+  style: '스타일 가이드',
+  other: '기타',
+};
+
 // IPC Channels
 export const IpcChannels = {
   // Window

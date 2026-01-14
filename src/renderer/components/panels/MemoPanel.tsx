@@ -198,13 +198,14 @@ export function MemoPanel() {
                       e.stopPropagation();
                       toggleComplete(memo.id);
                     }}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                       memo.completed
                         ? 'bg-accent-green border-accent-green text-white'
-                        : 'border-gray-500 hover:border-accent-green'
+                        : 'bg-dark-bg border-gray-400 hover:border-accent-green hover:bg-dark-bg/80'
                     }`}
+                    title={memo.completed ? '완료 취소' : '완료로 표시'}
                   >
-                    {memo.completed && <Check className="w-3 h-3" />}
+                    {memo.completed && <Check className="w-4 h-4" />}
                   </button>
 
                   {/* 제목 */}
@@ -232,10 +233,10 @@ export function MemoPanel() {
 
                 {/* 확장 내용 */}
                 {isExpanded && (
-                  <div className="px-2 pb-2 pl-9">
+                  <div className="px-2 pb-3 pl-10">
                     {/* 메모 내용 */}
                     {memo.content && (
-                      <p className="text-xs text-gray-400 mb-2 whitespace-pre-wrap">
+                      <p className="text-sm text-gray-300 mb-3 whitespace-pre-wrap leading-relaxed">
                         {memo.content}
                       </p>
                     )}
@@ -243,17 +244,17 @@ export function MemoPanel() {
                     {/* 카드 정보 - 클릭 시 해당 카드로 이동 */}
                     {cardInfo && (
                       <div
-                        className="flex items-center gap-2 text-xs text-gray-500 bg-dark-bg/50 rounded p-2 mb-2 cursor-pointer hover:bg-dark-bg group"
+                        className="flex items-center gap-2 text-sm text-gray-500 bg-dark-bg/50 rounded p-2 mb-2 cursor-pointer hover:bg-dark-bg group"
                         onClick={() => handleNavigateToCard(memo)}
                       >
                         <div className="flex-1 min-w-0">
-                          <span className="font-timecode text-gray-600">
+                          <span className="font-timecode text-gray-500">
                             {formatTimecode(cardInfo.tcIn)}
                           </span>
                           <span className="mx-2">•</span>
                           <span className="text-gray-400 line-clamp-1">{cardInfo.text || '(내용 없음)'}</span>
                         </div>
-                        <ExternalLink className="w-3.5 h-3.5 text-gray-600 group-hover:text-accent-yellow flex-shrink-0" />
+                        <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-accent-yellow flex-shrink-0" />
                       </div>
                     )}
 
