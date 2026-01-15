@@ -1,16 +1,48 @@
 /**
  * FFmpeg 기반 오디오 노이즈 제거 모듈
  * 녹음 파일의 배경 노이즈를 자동으로 제거합니다.
+ *
+ * FFmpeg가 시스템에 설치되어 있어야 합니다.
+ * macOS: brew install ffmpeg
+ * Windows: choco install ffmpeg 또는 수동 설치
+ * Linux: apt install ffmpeg
  */
 
 import ffmpeg from 'fluent-ffmpeg';
-import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 import path from 'path';
 import fs from 'fs/promises';
 import { app } from 'electron';
+import { execSync } from 'child_process';
+
+// 시스템 FFmpeg 경로 찾기
+function findFfmpegPath(): string | null {
+  try {
+    // macOS/Linux
+    const result = execSync('which ffmpeg', { encoding: 'utf8' }).trim();
+    if (result) return result;
+  } catch {
+    // Windows
+    try {
+      const result = execSync('where ffmpeg', { encoding: 'utf8' }).trim().split('\n')[0];
+      if (result) return result;
+    } catch {
+      // FFmpeg not found
+    }
+  }
+  return null;
+}
 
 // FFmpeg 경로 설정
-ffmpeg.setFfmpegPath(ffmpegPath);
+const ffmpegPath = findFfmpegPath();
+let ffmpegAvailable = false;
+
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(ffmpegPath);
+  ffmpegAvailable = true;
+  console.log('FFmpeg found at:', ffmpegPath);
+} else {
+  console.warn('FFmpeg not found. Noise removal will be disabled.');
+}
 
 export interface NoiseRemovalOptions {
   // 노이즈 감소 강도 (0.0 ~ 1.0, 기본 0.21)
@@ -103,6 +135,7 @@ export async function removeNoise(
 
 /**
  * 오디오 데이터(Buffer)에서 노이즈를 제거합니다.
+ * FFmpeg가 설치되어 있지 않으면 원본 데이터를 그대로 반환합니다.
  * @param audioData 오디오 데이터 (Uint8Array 또는 Buffer)
  * @param options 노이즈 제거 옵션
  * @returns 처리된 오디오 데이터
@@ -111,6 +144,12 @@ export async function removeNoiseFromBuffer(
   audioData: Buffer | Uint8Array,
   options?: NoiseRemovalOptions
 ): Promise<Buffer> {
+  // FFmpeg가 없으면 원본 반환
+  if (!ffmpegAvailable) {
+    console.log('FFmpeg not available, skipping noise removal');
+    return Buffer.from(audioData);
+  }
+
   const tempDir = path.join(app.getPath('temp'), 'accesson-audio');
   await fs.mkdir(tempDir, { recursive: true });
 
