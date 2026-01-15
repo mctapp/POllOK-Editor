@@ -46,10 +46,7 @@ interface UseAudioWaveformOptions {
  * });
  * ```
  */
-export function useAudioWaveform(
-  source: string | null,
-  options: UseAudioWaveformOptions = {}
-) {
+export function useAudioWaveform(source: string | null, options: UseAudioWaveformOptions = {}) {
   const {
     samples = 800,
     enabled = true,
@@ -159,7 +156,17 @@ export function useAudioWaveform(
       setStatus('error');
       setStatusMessage(result.error || '분석 실패');
     }
-  }, [source, enabled, samples, analyzerType, mapStatus, isCacheValid, cachedData, videoPath, onCacheUpdate]);
+  }, [
+    source,
+    enabled,
+    samples,
+    analyzerType,
+    mapStatus,
+    isCacheValid,
+    cachedData,
+    videoPath,
+    onCacheUpdate,
+  ]);
 
   // source 또는 옵션 변경 시 분석 실행
   useEffect(() => {

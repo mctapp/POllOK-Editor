@@ -57,38 +57,27 @@ export const useUIStore = create<UIState>((set) => ({
   setActiveTab: (activeTab) => set({ activeTab }),
   setOpenDialog: (openDialog) => set({ openDialog }),
 
-  setLeftPanelWidth: (width) =>
-    set({ leftPanelWidth: Math.max(40, Math.min(85, width)) }), // 40% ~ 85%
+  setLeftPanelWidth: (width) => set({ leftPanelWidth: Math.max(40, Math.min(85, width)) }), // 40% ~ 85%
 
-  setScriptPanelWidth: (width) =>
-    set({ scriptPanelWidth: Math.max(280, Math.min(600, width)) }),
+  setScriptPanelWidth: (width) => set({ scriptPanelWidth: Math.max(280, Math.min(600, width)) }),
 
-  setTimelineHeight: (height) =>
-    set({ timelineHeight: Math.max(100, Math.min(400, height)) }),
+  setTimelineHeight: (height) => set({ timelineHeight: Math.max(100, Math.min(400, height)) }),
 
-  toggleTimeline: () =>
-    set((state) => ({ isTimelineCollapsed: !state.isTimelineCollapsed })),
+  toggleTimeline: () => set((state) => ({ isTimelineCollapsed: !state.isTimelineCollapsed })),
 
-  toggleOverlay: () =>
-    set((state) => ({ showOverlay: !state.showOverlay })),
+  toggleOverlay: () => set((state) => ({ showOverlay: !state.showOverlay })),
 
-  toggleFocusMode: () =>
-    set((state) => ({ focusMode: !state.focusMode })),
+  toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
 
-  toggleReviewOnly: () =>
-    set((state) => ({ showReviewOnly: !state.showReviewOnly })),
+  toggleReviewOnly: () => set((state) => ({ showReviewOnly: !state.showReviewOnly })),
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
 
-  setTimelineZoom: (zoom) =>
-    set({ timelineZoom: Math.max(0.5, Math.min(10, zoom)) }),
+  setTimelineZoom: (zoom) => set({ timelineZoom: Math.max(0.5, Math.min(10, zoom)) }),
 
-  zoomIn: () =>
-    set((state) => ({ timelineZoom: Math.min(10, state.timelineZoom * 1.25) })),
+  zoomIn: () => set((state) => ({ timelineZoom: Math.min(10, state.timelineZoom * 1.25) })),
 
-  zoomOut: () =>
-    set((state) => ({ timelineZoom: Math.max(0.5, state.timelineZoom / 1.25) })),
+  zoomOut: () => set((state) => ({ timelineZoom: Math.max(0.5, state.timelineZoom / 1.25) })),
 
-  toggleGuidePanel: () =>
-    set((state) => ({ showGuidePanel: !state.showGuidePanel })),
+  toggleGuidePanel: () => set((state) => ({ showGuidePanel: !state.showGuidePanel })),
 }));

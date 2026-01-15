@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { Project, ProjectSettings, VideoInfo, AudioDescription, Caption, Speaker, Memo, WaveformCache, Feedback } from '../../shared/types';
+import type {
+  Project,
+  ProjectSettings,
+  VideoInfo,
+  AudioDescription,
+  Caption,
+  Speaker,
+  Memo,
+  WaveformCache,
+  Feedback,
+} from '../../shared/types';
 import { DEFAULT_PROJECT_SETTINGS } from '../../shared/constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -42,10 +52,7 @@ function addRecentProject(path: string, title: string): void {
     title,
     lastOpened: new Date().toISOString(),
   });
-  localStorage.setItem(
-    RECENT_PROJECTS_KEY,
-    JSON.stringify(recents.slice(0, MAX_RECENT_PROJECTS))
-  );
+  localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(recents.slice(0, MAX_RECENT_PROJECTS)));
 }
 
 interface ProjectState {
@@ -119,7 +126,8 @@ export const useProjectStore = create<ProjectState>()(
         });
 
         // 다른 스토어 데이터 복원
-        const { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore } = await getOtherStores();
+        const { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore } =
+          await getOtherStores();
 
         if (fileData.descriptions) {
           useADStore.getState().setDescriptions(fileData.descriptions);
@@ -143,10 +151,9 @@ export const useProjectStore = create<ProjectState>()(
           useVideoStore.getState().setSource(videoUrl);
           useVideoStore.getState().setFps(fileData.project.video.fps);
           useVideoStore.getState().setDuration(fileData.project.video.durationFrames);
-          useVideoStore.getState().setResolution(
-            fileData.project.video.width,
-            fileData.project.video.height
-          );
+          useVideoStore
+            .getState()
+            .setResolution(fileData.project.video.width, fileData.project.video.height);
         }
 
         // 웨이브폼 캐시 로드
@@ -288,7 +295,8 @@ export const useProjectStore = create<ProjectState>()(
 
     closeProject: async () => {
       // 다른 스토어 초기화
-      const { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore } = await getOtherStores();
+      const { useADStore, useCCStore, useMemoStore, useVideoStore, useFeedbackStore } =
+        await getOtherStores();
       useADStore.getState().reset();
       useCCStore.getState().reset();
       useMemoStore.getState().reset();

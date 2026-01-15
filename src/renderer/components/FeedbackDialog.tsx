@@ -11,7 +11,7 @@ interface FeedbackDialogProps {
 }
 
 export function FeedbackDialog({ isOpen, onClose, cardId, cardType }: FeedbackDialogProps) {
-  const { guides, isLoaded, loadGuides, getMajorCategories } = useGuideStore();
+  const { guides, isLoaded, loadGuides } = useGuideStore();
   const { addFeedback } = useFeedbackStore();
 
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
@@ -45,12 +45,15 @@ export function FeedbackDialog({ isOpen, onClose, cardId, cardType }: FeedbackDi
   });
 
   // 대분류별 그룹화
-  const groupedGuides = filteredGuides.reduce((acc, guide) => {
-    const category = guide.majorCategory;
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(guide);
-    return acc;
-  }, {} as Record<string, GuideItem[]>);
+  const groupedGuides = filteredGuides.reduce(
+    (acc, guide) => {
+      const category = guide.majorCategory;
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(guide);
+      return acc;
+    },
+    {} as Record<string, GuideItem[]>
+  );
 
   const toggleCategory = (category: string) => {
     setExpandedCategories((prev) => {
@@ -75,7 +78,10 @@ export function FeedbackDialog({ isOpen, onClose, cardId, cardType }: FeedbackDi
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
       <div
         className="bg-dark-bg border border-dark-border rounded-lg w-[600px] max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -83,7 +89,10 @@ export function FeedbackDialog({ isOpen, onClose, cardId, cardType }: FeedbackDi
         {/* 헤더 */}
         <div className="flex items-center justify-between p-4 border-b border-dark-border">
           <h2 className="text-lg font-medium text-white">보완 요청</h2>
-          <button onClick={onClose} className="p-1 text-gray-500 hover:text-white transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-500 hover:text-white transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -154,7 +163,9 @@ export function FeedbackDialog({ isOpen, onClose, cardId, cardType }: FeedbackDi
                     <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-accent-yellow/20 text-accent-yellow">
                       {selectedGuide.code}
                     </span>
-                    <span className="text-sm font-medium text-white">{selectedGuide.minorCategory}</span>
+                    <span className="text-sm font-medium text-white">
+                      {selectedGuide.minorCategory}
+                    </span>
                   </div>
 
                   <div className="space-y-2 text-xs">

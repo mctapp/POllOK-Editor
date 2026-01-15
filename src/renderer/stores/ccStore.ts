@@ -84,9 +84,7 @@ export const useCCStore = create<CCState>((set, get) => ({
 
   deleteSelected: () => {
     set((state) => ({
-      captions: state.captions.filter(
-        (caption) => !state.selectedIds.includes(caption.id)
-      ),
+      captions: state.captions.filter((caption) => !state.selectedIds.includes(caption.id)),
       selectedIds: [],
     }));
   },

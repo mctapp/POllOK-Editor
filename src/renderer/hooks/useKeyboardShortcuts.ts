@@ -57,11 +57,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
     (e: KeyboardEvent) => {
       // 입력 필드에서는 단축키 무시
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
       }
 
@@ -209,7 +205,24 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         return;
       }
     },
-    [source, currentFrame, fps, togglePlay, setInPoint, setOutPoint, clearPoints, addDescription, addCaption, seekToFrame, zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel, shortcuts, matchesShortcut]
+    [
+      source,
+      currentFrame,
+      fps,
+      togglePlay,
+      setInPoint,
+      setOutPoint,
+      clearPoints,
+      addDescription,
+      addCaption,
+      seekToFrame,
+      zoomIn,
+      zoomOut,
+      setActiveTab,
+      toggleFeedbackPanel,
+      shortcuts,
+      matchesShortcut,
+    ]
   );
 
   useEffect(() => {

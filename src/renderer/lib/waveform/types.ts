@@ -18,7 +18,13 @@ export interface WaveformData {
 /**
  * 분석 진행 상태
  */
-export type AnalyzerStatus = 'idle' | 'initializing' | 'analyzing' | 'complete' | 'error' | 'cancelled';
+export type AnalyzerStatus =
+  | 'idle'
+  | 'initializing'
+  | 'analyzing'
+  | 'complete'
+  | 'error'
+  | 'cancelled';
 
 /**
  * 진행 상황 콜백

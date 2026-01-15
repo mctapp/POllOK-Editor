@@ -13,7 +13,14 @@ import {
   X,
   Subtitles,
 } from 'lucide-react';
-import { useVideoStore, useProjectStore, useADStore, useCCStore, useUIStore, useSettingsStore } from '../../stores';
+import {
+  useVideoStore,
+  useProjectStore,
+  useADStore,
+  useCCStore,
+  useUIStore,
+  useSettingsStore,
+} from '../../stores';
 import { PLAYBACK_RATES } from '../../../shared/constants';
 
 export function VideoPanel() {
@@ -27,7 +34,7 @@ export function VideoPanel() {
   const { project, setVideo } = useProjectStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
-  const { showOverlay, toggleOverlay, activeTab } = useUIStore();
+  const { showOverlay, toggleOverlay } = useUIStore();
   const { overlay } = useSettingsStore();
   const {
     source,
@@ -370,9 +377,7 @@ export function VideoPanel() {
     );
 
     // 현재 프레임에 해당하는 CC 찾기
-    const currentCC = captions.find(
-      (cap) => currentFrame >= cap.tcIn && currentFrame <= cap.tcOut
-    );
+    const currentCC = captions.find((cap) => currentFrame >= cap.tcIn && currentFrame <= cap.tcOut);
 
     return { ad: currentAD?.text || null, cc: currentCC?.text || null };
   }, [currentFrame, descriptions, captions]);
@@ -406,8 +411,8 @@ export function VideoPanel() {
                       overlay.adPosition === 'top'
                         ? 'top-4'
                         : overlay.adPosition === 'center'
-                        ? 'top-1/2 -translate-y-1/2'
-                        : 'bottom-16'
+                          ? 'top-1/2 -translate-y-1/2'
+                          : 'bottom-16'
                     }`}
                   >
                     <div className="max-w-[80%] px-4 py-2 bg-brand-brown/80 rounded-lg">
@@ -428,8 +433,8 @@ export function VideoPanel() {
                       overlay.ccPosition === 'top'
                         ? 'top-4'
                         : overlay.ccPosition === 'center'
-                        ? 'top-1/2 -translate-y-1/2'
-                        : 'bottom-16'
+                          ? 'top-1/2 -translate-y-1/2'
+                          : 'bottom-16'
                     }`}
                   >
                     <div className="max-w-[80%] px-4 py-2 bg-black/80 rounded-lg">
@@ -462,9 +467,7 @@ export function VideoPanel() {
                 <p className="text-gray-500 text-sm mb-2">
                   {project ? '영상 파일을 불러오세요' : '프로젝트를 생성하거나 열어주세요'}
                 </p>
-                <p className="text-gray-600 text-xs mb-4">
-                  지원 형식: MP4 (H.264), WebM
-                </p>
+                <p className="text-gray-600 text-xs mb-4">지원 형식: MP4 (H.264), WebM</p>
                 {project && (
                   <button onClick={handleLoadVideo} className="btn-primary text-sm">
                     영상 불러오기
@@ -665,9 +668,7 @@ export function VideoPanel() {
             <button
               onClick={toggleOverlay}
               className={`p-1 rounded transition-colors ${
-                showOverlay
-                  ? 'text-accent-yellow'
-                  : 'text-gray-500 hover:text-white'
+                showOverlay ? 'text-accent-yellow' : 'text-gray-500 hover:text-white'
               }`}
               title={showOverlay ? '자막 오버레이 끄기' : '자막 오버레이 켜기'}
             >
