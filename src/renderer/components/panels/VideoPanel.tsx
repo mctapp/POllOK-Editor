@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   X,
   Subtitles,
+  EyeOff,
 } from 'lucide-react';
 import {
   useVideoStore,
@@ -34,7 +35,7 @@ export function VideoPanel() {
   const { project, setVideo } = useProjectStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
-  const { showOverlay, toggleOverlay } = useUIStore();
+  const { showOverlay, toggleOverlay, soMode, toggleSoMode } = useUIStore();
   const { overlay } = useSettingsStore();
   const {
     source,
@@ -663,7 +664,19 @@ export function VideoPanel() {
           </div>
 
           {/* 볼륨 + 오버레이 토글 */}
-          <div className="flex items-center gap-2 w-40 justify-end">
+          <div className="flex items-center gap-2 w-48 justify-end">
+            {/* SO 모드 토글 */}
+            <button
+              onClick={toggleSoMode}
+              className={`p-1 rounded transition-colors ${
+                soMode ? 'text-accent-yellow' : 'text-gray-500 hover:text-white'
+              }`}
+              title="SO 모드 (F3)"
+              disabled={!source}
+            >
+              <EyeOff className="w-4 h-4" />
+            </button>
+
             {/* 오버레이 토글 */}
             <button
               onClick={toggleOverlay}
