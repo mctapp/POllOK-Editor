@@ -16,7 +16,6 @@ export default defineConfig({
         external: [
           'better-sqlite3',
           'fluent-ffmpeg',
-          '@ffmpeg-installer/ffmpeg',
         ],
       },
     },
