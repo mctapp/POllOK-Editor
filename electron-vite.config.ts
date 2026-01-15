@@ -11,6 +11,15 @@ export default defineConfig({
         '@main': path.resolve(__dirname, './src/main'),
       },
     },
+    build: {
+      rollupOptions: {
+        external: [
+          'better-sqlite3',
+          'fluent-ffmpeg',
+          '@ffmpeg-installer/ffmpeg',
+        ],
+      },
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
