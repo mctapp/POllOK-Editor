@@ -11,7 +11,14 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { Caption } from '../../../shared/types';
-import { useCCStore, useVideoStore, useMemoStore, useUIStore, useSettingsStore, useFeedbackStore } from '../../stores';
+import {
+  useCCStore,
+  useVideoStore,
+  useMemoStore,
+  useUIStore,
+  useSettingsStore,
+  useFeedbackStore,
+} from '../../stores';
 import { CC_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
 import { FeedbackDialog } from '../FeedbackDialog';
@@ -56,14 +63,8 @@ export function CCCard({ caption }: CCCardProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showVersions]);
 
-  const {
-    selectedIds,
-    editingId,
-    selectCaption,
-    updateCaption,
-    deleteCaption,
-    setEditingId,
-  } = useCCStore();
+  const { selectedIds, editingId, selectCaption, updateCaption, deleteCaption, setEditingId } =
+    useCCStore();
   const { fps, seekToFrame } = useVideoStore();
   const { script } = useSettingsStore();
 
@@ -242,8 +243,8 @@ export function CCCard({ caption }: CCCardProps) {
           isSelected
             ? 'bg-accent-green/20 border-accent-green'
             : caption.needsReview
-            ? 'bg-dark-surface border-accent-yellow/50'
-            : 'bg-dark-surface border-dark-border hover:border-gray-500'
+              ? 'bg-dark-surface border-accent-yellow/50'
+              : 'bg-dark-surface border-dark-border hover:border-gray-500'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -335,14 +336,15 @@ export function CCCard({ caption }: CCCardProps) {
             placeholder="자막 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
           />
         ) : (
-          <p className="text-gray-200 whitespace-pre-wrap" style={{ fontSize: `${script.fontSize}px` }}>
+          <p
+            className="text-gray-200 whitespace-pre-wrap"
+            style={{ fontSize: `${script.fontSize}px` }}
+          >
             {getTypeIcon() && <span className="mr-1">{getTypeIcon()}</span>}
             {caption.type !== 'dialogue' && caption.text ? (
               <span className="text-gray-400">[{caption.text}]</span>
             ) : (
-              caption.text || (
-                <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
-              )
+              caption.text || <span className="text-gray-500 italic">자막 텍스트를 입력하세요</span>
             )}
           </p>
         )}
@@ -359,7 +361,11 @@ export function CCCard({ caption }: CCCardProps) {
               {getDuration()}초
             </span>
             <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-400">
-              {caption.position === 'top' ? '상단' : caption.position === 'center' ? '중앙' : '하단'}
+              {caption.position === 'top'
+                ? '상단'
+                : caption.position === 'center'
+                  ? '중앙'
+                  : '하단'}
             </span>
           </div>
 
@@ -375,10 +381,14 @@ export function CCCard({ caption }: CCCardProps) {
                   pendingFeedbackCount > 0
                     ? 'text-orange-400 hover:text-orange-300'
                     : feedbackCount > 0
-                    ? 'text-accent-green hover:text-accent-green/80'
-                    : 'text-gray-500 hover:text-white'
+                      ? 'text-accent-green hover:text-accent-green/80'
+                      : 'text-gray-500 hover:text-white'
                 }`}
-                title={feedbackCount > 0 ? `피드백 ${feedbackCount}개 (미해결 ${pendingFeedbackCount}개)` : '피드백 추가'}
+                title={
+                  feedbackCount > 0
+                    ? `피드백 ${feedbackCount}개 (미해결 ${pendingFeedbackCount}개)`
+                    : '피드백 추가'
+                }
               >
                 <MessageSquare className="w-4 h-4" />
               </button>

@@ -16,7 +16,14 @@ interface MenuItem {
 export function MenuBar() {
   const [showPreferences, setShowPreferences] = useState(false);
   const { project, createProject, saveProject, closeProject } = useProjectStore();
-  const { setOpenDialog, setActiveTab, isTimelineCollapsed, toggleTimeline, showGuidePanel, toggleGuidePanel } = useUIStore();
+  const {
+    setOpenDialog,
+    setActiveTab,
+    isTimelineCollapsed,
+    toggleTimeline,
+    showGuidePanel,
+    toggleGuidePanel,
+  } = useUIStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
   const { fps } = useVideoStore();
@@ -201,7 +208,9 @@ export function MenuBar() {
             action: () => !isTimelineCollapsed && toggleTimeline(),
           },
           {
-            label: isTimelineCollapsed ? '● 영상 + 스크립트 + 타임라인' : '◯ 영상 + 스크립트 + 타임라인',
+            label: isTimelineCollapsed
+              ? '● 영상 + 스크립트 + 타임라인'
+              : '◯ 영상 + 스크립트 + 타임라인',
             action: () => isTimelineCollapsed && toggleTimeline(),
           },
         ],
@@ -223,8 +232,16 @@ export function MenuBar() {
       {
         label: '자막 형식',
         submenu: [
-          { label: 'SRT (SubRip)', action: handleExportSRT, disabled: !project || captions.length === 0 },
-          { label: 'VTT (WebVTT)', action: handleExportVTT, disabled: !project || captions.length === 0 },
+          {
+            label: 'SRT (SubRip)',
+            action: handleExportSRT,
+            disabled: !project || captions.length === 0,
+          },
+          {
+            label: 'VTT (WebVTT)',
+            action: handleExportVTT,
+            disabled: !project || captions.length === 0,
+          },
           { label: 'STL (EBU)', disabled: true },
         ],
       },
@@ -264,10 +281,7 @@ export function MenuBar() {
             >
               {items.map((item, index) =>
                 item.separator ? (
-                  <DropdownMenu.Separator
-                    key={index}
-                    className="h-px bg-dark-border my-1"
-                  />
+                  <DropdownMenu.Separator key={index} className="h-px bg-dark-border my-1" />
                 ) : item.submenu ? (
                   <DropdownMenu.Sub key={item.label}>
                     <DropdownMenu.SubTrigger className="flex items-center justify-between px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 cursor-default outline-none data-[disabled]:opacity-50">
@@ -311,10 +325,7 @@ export function MenuBar() {
         </DropdownMenu.Root>
       ))}
 
-      <PreferencesDialog
-        isOpen={showPreferences}
-        onClose={() => setShowPreferences(false)}
-      />
+      <PreferencesDialog isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
     </div>
   );
 }

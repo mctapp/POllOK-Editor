@@ -54,7 +54,10 @@ export function MemoDialog({ isOpen, onClose, cardId, cardType, memoId }: MemoDi
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
       <div
         className="bg-dark-bg border border-dark-border rounded-lg w-[400px] shadow-xl"
         onClick={(e) => e.stopPropagation()}

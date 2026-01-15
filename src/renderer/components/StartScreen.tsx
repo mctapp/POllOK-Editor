@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { FolderOpen, Clock, FilePlus, Pencil, ClipboardCheck } from 'lucide-react';
 import { useProjectStore, getRecentProjects, type RecentProject } from '../stores/projectStore';
 import { useUIStore } from '../stores';
-import type { AppMode } from '../../shared/types';
 
 export function StartScreen() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
@@ -106,8 +105,7 @@ export function StartScreen() {
                 onClick={handleNewProject}
                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-dark-surface border border-dark-border hover:border-gray-500 text-gray-300 rounded-lg transition-colors"
               >
-                <FilePlus className="w-4 h-4" />
-                새 프로젝트
+                <FilePlus className="w-4 h-4" />새 프로젝트
               </button>
             </div>
 
@@ -150,8 +148,7 @@ export function StartScreen() {
               onClick={handleNewProject}
               className="w-full flex items-center justify-center gap-2 py-4 bg-brand-brown hover:bg-brand-brown/80 text-white rounded-lg font-medium transition-colors"
             >
-              <FilePlus className="w-5 h-5" />
-              새 프로젝트 시작
+              <FilePlus className="w-5 h-5" />새 프로젝트 시작
             </button>
             <button
               onClick={handleOpenProject}

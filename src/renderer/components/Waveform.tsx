@@ -58,12 +58,7 @@ export function Waveform({
 
         ctx.fillStyle = isBeforeProgress ? progressColor : color;
 
-        ctx.fillRect(
-          x,
-          centerY - barHeight / 2,
-          Math.max(1, barWidth - 0.5),
-          barHeight
-        );
+        ctx.fillRect(x, centerY - barHeight / 2, Math.max(1, barWidth - 0.5), barHeight);
       });
     };
 
@@ -130,7 +125,9 @@ interface WaveformEmptyProps {
 export function WaveformEmpty({ message }: WaveformEmptyProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-dark-surface/20">
-      <span className="text-xs text-gray-600">{message || '영상을 불러오면 오디오 파형이 표시됩니다'}</span>
+      <span className="text-xs text-gray-600">
+        {message || '영상을 불러오면 오디오 파형이 표시됩니다'}
+      </span>
     </div>
   );
 }

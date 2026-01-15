@@ -49,7 +49,10 @@ export function MainLayout() {
         {/* 상단: 비디오 + 스크립트 패널 */}
         <div ref={containerRef} className="flex-1 flex overflow-hidden">
           {/* 왼쪽: 비디오 플레이어 (70%) */}
-          <div style={{ flexBasis: `${leftPanelWidth}%`, minWidth: '40%', maxWidth: '85%' }} className="flex-shrink-0 overflow-hidden">
+          <div
+            style={{ flexBasis: `${leftPanelWidth}%`, minWidth: '40%', maxWidth: '85%' }}
+            className="flex-shrink-0 overflow-hidden"
+          >
             <VideoPanel />
           </div>
 

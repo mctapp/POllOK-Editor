@@ -42,7 +42,7 @@ export class PlaceholderAnalyzer extends BaseAnalyzer {
       let hash = 0;
       for (let i = 0; i < source.length; i++) {
         const char = source.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
+        hash = (hash << 5) - hash + char;
         hash = hash & hash;
       }
 
@@ -66,7 +66,7 @@ export class PlaceholderAnalyzer extends BaseAnalyzer {
         const silenceModulation = Math.abs(Math.sin(hash * 0.0001 + i * 0.008));
 
         let value = 0.4 + lowFreq + midFreq + highFreq;
-        value *= (0.3 + silenceModulation * 0.7);
+        value *= 0.3 + silenceModulation * 0.7;
         value = Math.max(0.05, Math.min(0.95, value));
 
         peaks.push(value);

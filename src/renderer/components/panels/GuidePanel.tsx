@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
-import {
-  ChevronDown,
-  ChevronRight,
-  BookOpen,
-  X,
-  Search,
-  CheckCircle,
-  XCircle,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, X, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useGuideStore, useUIStore } from '../../stores';
 import type { GuideItem } from '../../../shared/types';
 
 export function GuidePanel() {
-  const { guides, isLoaded, loadGuides, selectedCode, selectGuide, getMajorCategories } = useGuideStore();
+  const { guides, isLoaded, loadGuides, selectedCode, selectGuide } = useGuideStore();
   const { showGuidePanel, toggleGuidePanel } = useUIStore();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,12 +30,15 @@ export function GuidePanel() {
   });
 
   // 대분류별 그룹화
-  const groupedGuides = filteredGuides.reduce((acc, guide) => {
-    const category = guide.majorCategory;
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(guide);
-    return acc;
-  }, {} as Record<string, GuideItem[]>);
+  const groupedGuides = filteredGuides.reduce(
+    (acc, guide) => {
+      const category = guide.majorCategory;
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(guide);
+      return acc;
+    },
+    {} as Record<string, GuideItem[]>
+  );
 
   const toggleCategory = (category: string) => {
     setExpandedCategories((prev) => {

@@ -14,7 +14,15 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
-import { useADStore, useVideoStore, useMemoStore, useUIStore, useProjectStore, useSettingsStore, useFeedbackStore } from '../../stores';
+import {
+  useADStore,
+  useVideoStore,
+  useMemoStore,
+  useUIStore,
+  useProjectStore,
+  useSettingsStore,
+  useFeedbackStore,
+} from '../../stores';
 import { AD_TYPE_OPTIONS } from '../../../shared/constants';
 import { MemoDialog } from '../MemoDialog';
 import { FeedbackDialog } from '../FeedbackDialog';
@@ -129,7 +137,15 @@ export function ADCard({ description }: ADCardProps) {
     }
 
     prevFrameRef.current = currentFrame;
-  }, [currentFrame, videoIsPlaying, hasRecording, isPlaying, description.tcIn, description.audioFile, fps]);
+  }, [
+    currentFrame,
+    videoIsPlaying,
+    hasRecording,
+    isPlaying,
+    description.tcIn,
+    description.audioFile,
+    fps,
+  ]);
 
   const formatTimecode = (frame: number) => {
     const totalSeconds = frame / fps;
@@ -408,8 +424,8 @@ export function ADCard({ description }: ADCardProps) {
           isSelected
             ? 'bg-brand-brown/20 border-brand-brown'
             : description.needsReview
-            ? 'bg-dark-surface border-accent-yellow/50'
-            : 'bg-dark-surface border-dark-border hover:border-gray-500'
+              ? 'bg-dark-surface border-accent-yellow/50'
+              : 'bg-dark-surface border-dark-border hover:border-gray-500'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -432,8 +448,8 @@ export function ADCard({ description }: ADCardProps) {
                   isPlaying
                     ? 'text-accent-green bg-accent-green/20'
                     : hasRecording
-                    ? 'text-accent-green hover:bg-accent-green/20'
-                    : 'text-gray-600 cursor-not-allowed'
+                      ? 'text-accent-green hover:bg-accent-green/20'
+                      : 'text-gray-600 cursor-not-allowed'
                 }`}
                 title={hasRecording ? (isPlaying ? '정지' : '녹음 재생') : '녹음 없음'}
               >
@@ -445,8 +461,8 @@ export function ADCard({ description }: ADCardProps) {
                   isRecording
                     ? 'text-red-500 bg-red-500/20 animate-pulse'
                     : hasRecording
-                    ? 'text-accent-green hover:bg-accent-green/20'
-                    : 'text-gray-400 hover:text-white hover:bg-dark-bg'
+                      ? 'text-accent-green hover:bg-accent-green/20'
+                      : 'text-gray-400 hover:text-white hover:bg-dark-bg'
                 }`}
                 title={isRecording ? '녹음 중지' : hasRecording ? '다시 녹음' : '녹음 시작'}
               >
@@ -532,7 +548,10 @@ export function ADCard({ description }: ADCardProps) {
             placeholder="해설 텍스트를 입력하세요... (Shift+Enter로 줄바꿈)"
           />
         ) : (
-          <p className="text-gray-200 whitespace-pre-wrap" style={{ fontSize: `${script.fontSize}px` }}>
+          <p
+            className="text-gray-200 whitespace-pre-wrap"
+            style={{ fontSize: `${script.fontSize}px` }}
+          >
             {description.text || (
               <span className="text-gray-500 italic">해설 텍스트를 입력하세요</span>
             )}
@@ -555,15 +574,15 @@ export function ADCard({ description }: ADCardProps) {
                 description.status === 'approved'
                   ? 'bg-green-900/50 text-green-400'
                   : description.status === 'review'
-                  ? 'bg-yellow-900/50 text-yellow-400'
-                  : 'bg-gray-700 text-gray-400'
+                    ? 'bg-yellow-900/50 text-yellow-400'
+                    : 'bg-gray-700 text-gray-400'
               }`}
             >
               {description.status === 'approved'
                 ? '승인됨'
                 : description.status === 'review'
-                ? '검토 중'
-                : '초안'}
+                  ? '검토 중'
+                  : '초안'}
             </span>
           </div>
 
@@ -579,10 +598,14 @@ export function ADCard({ description }: ADCardProps) {
                   pendingFeedbackCount > 0
                     ? 'text-orange-400 hover:text-orange-300'
                     : feedbackCount > 0
-                    ? 'text-accent-green hover:text-accent-green/80'
-                    : 'text-gray-500 hover:text-white'
+                      ? 'text-accent-green hover:text-accent-green/80'
+                      : 'text-gray-500 hover:text-white'
                 }`}
-                title={feedbackCount > 0 ? `피드백 ${feedbackCount}개 (미해결 ${pendingFeedbackCount}개)` : '피드백 추가'}
+                title={
+                  feedbackCount > 0
+                    ? `피드백 ${feedbackCount}개 (미해결 ${pendingFeedbackCount}개)`
+                    : '피드백 추가'
+                }
               >
                 <MessageSquare className="w-4 h-4" />
               </button>

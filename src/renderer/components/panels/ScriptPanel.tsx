@@ -1,16 +1,42 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, Focus, CheckSquare, StickyNote, AudioLines, Subtitles, MessageSquare } from 'lucide-react';
-import { useUIStore, useADStore, useCCStore, useVideoStore, useProjectStore, useMemoStore, useFeedbackStore } from '../../stores';
+import {
+  Plus,
+  Search,
+  Focus,
+  CheckSquare,
+  StickyNote,
+  AudioLines,
+  Subtitles,
+  MessageSquare,
+} from 'lucide-react';
+import {
+  useUIStore,
+  useADStore,
+  useCCStore,
+  useVideoStore,
+  useProjectStore,
+  useMemoStore,
+  useFeedbackStore,
+} from '../../stores';
 import { ADCard } from './ADCard';
 import { CCCard } from './CCCard';
 import { MemoPanel } from './MemoPanel';
 import { FeedbackPanel } from './FeedbackPanel';
 
 export function ScriptPanel() {
-  const { activeTab, setActiveTab, focusMode, toggleFocusMode, showReviewOnly, toggleReviewOnly, searchQuery, setSearchQuery } = useUIStore();
+  const {
+    activeTab,
+    setActiveTab,
+    focusMode,
+    toggleFocusMode,
+    showReviewOnly,
+    toggleReviewOnly,
+    searchQuery,
+    setSearchQuery,
+  } = useUIStore();
   const { project } = useProjectStore();
-  const { descriptions, addDescription, selectedIds: adSelectedIds } = useADStore();
-  const { captions, addCaption, selectedIds: ccSelectedIds } = useCCStore();
+  const { descriptions, addDescription } = useADStore();
+  const { captions, addCaption } = useCCStore();
   const { memos } = useMemoStore();
   const { feedbacks } = useFeedbackStore();
   const { currentFrame } = useVideoStore();
@@ -41,12 +67,12 @@ export function ScriptPanel() {
     // 검색 필터
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      items = items.filter(desc => desc.text.toLowerCase().includes(query));
+      items = items.filter((desc) => desc.text.toLowerCase().includes(query));
     }
 
     // 검토 필터
     if (showReviewOnly) {
-      items = items.filter(desc => desc.needsReview);
+      items = items.filter((desc) => desc.needsReview);
     }
 
     // 포커스 모드: 최근 4개만 표시
@@ -63,12 +89,12 @@ export function ScriptPanel() {
     // 검색 필터
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      items = items.filter(caption => caption.text.toLowerCase().includes(query));
+      items = items.filter((caption) => caption.text.toLowerCase().includes(query));
     }
 
     // 검토 필터
     if (showReviewOnly) {
-      items = items.filter(caption => caption.needsReview);
+      items = items.filter((caption) => caption.needsReview);
     }
 
     // 포커스 모드: 최근 4개만 표시
@@ -100,9 +126,7 @@ export function ScriptPanel() {
       <div className="flex items-center border-b border-dark-border bg-dark-surface">
         <button
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
-            activeTab === 'ad'
-              ? 'text-brand-brown'
-              : 'text-gray-400 hover:text-gray-200'
+            activeTab === 'ad' ? 'text-brand-brown' : 'text-gray-400 hover:text-gray-200'
           }`}
           onClick={() => setActiveTab('ad')}
         >
@@ -114,9 +138,7 @@ export function ScriptPanel() {
         </button>
         <button
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
-            activeTab === 'cc'
-              ? 'text-accent-green'
-              : 'text-gray-400 hover:text-gray-200'
+            activeTab === 'cc' ? 'text-accent-green' : 'text-gray-400 hover:text-gray-200'
           }`}
           onClick={() => setActiveTab('cc')}
         >
@@ -128,9 +150,7 @@ export function ScriptPanel() {
         </button>
         <button
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
-            activeTab === 'memo'
-              ? 'text-accent-yellow'
-              : 'text-gray-400 hover:text-gray-200'
+            activeTab === 'memo' ? 'text-accent-yellow' : 'text-gray-400 hover:text-gray-200'
           }`}
           onClick={() => setActiveTab('memo')}
         >
@@ -142,9 +162,7 @@ export function ScriptPanel() {
         </button>
         <button
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
-            activeTab === 'feedback'
-              ? 'text-orange-400'
-              : 'text-gray-400 hover:text-gray-200'
+            activeTab === 'feedback' ? 'text-orange-400' : 'text-gray-400 hover:text-gray-200'
           }`}
           onClick={() => setActiveTab('feedback')}
         >
@@ -219,22 +237,22 @@ export function ScriptPanel() {
           {/* 콘텐츠 영역 */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
             {activeTab === 'ad' ? (
-          filteredDescriptions.length > 0 ? (
-            filteredDescriptions.map((desc) => <ADCard key={desc.id} description={desc} />)
-          ) : descriptions.length > 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 text-sm">필터 조건에 맞는 항목이 없습니다.</p>
-            </div>
-          ) : (
-            <EmptyState type="ad" onAdd={handleAddAD} />
-          )
-        ) : filteredCaptions.length > 0 ? (
-          filteredCaptions.map((caption) => <CCCard key={caption.id} caption={caption} />)
-        ) : captions.length > 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 text-sm">필터 조건에 맞는 항목이 없습니다.</p>
-          </div>
-        ) : (
+              filteredDescriptions.length > 0 ? (
+                filteredDescriptions.map((desc) => <ADCard key={desc.id} description={desc} />)
+              ) : descriptions.length > 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-sm">필터 조건에 맞는 항목이 없습니다.</p>
+                </div>
+              ) : (
+                <EmptyState type="ad" onAdd={handleAddAD} />
+              )
+            ) : filteredCaptions.length > 0 ? (
+              filteredCaptions.map((caption) => <CCCard key={caption.id} caption={caption} />)
+            ) : captions.length > 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">필터 조건에 맞는 항목이 없습니다.</p>
+              </div>
+            ) : (
               <EmptyState type="cc" onAdd={handleAddCC} />
             )}
           </div>
