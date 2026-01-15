@@ -145,6 +145,7 @@ export interface Movie {
   director?: string; // 감독 (선택)
   year?: number; // 연도 (선택)
   genre?: string; // 장르 (선택)
+  writer?: string; // 화면해설 작가 (선택)
   createdAt: string;
 }
 

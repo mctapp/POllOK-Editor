@@ -171,8 +171,13 @@ function parseSRT(content: string): Array<{ timecode: string; text: string }> {
     if (!timecodeMatch) continue;
 
     // 텍스트 (3번째 줄부터 끝까지)
-    const text = lines.slice(2).join(' ').trim();
+    let text = lines.slice(2).join(' ').trim();
     if (!text) continue;
+
+    // 괄호로 싸인 지시문 제거 (예: "(고개 돌리면 바로)")
+    // 전체가 괄호인 경우 스킵, 부분적인 괄호는 제거
+    text = text.replace(/\([^)]*\)/g, '').trim();
+    if (!text) continue; // 괄호 제거 후 빈 텍스트면 스킵
 
     entries.push({
       timecode: timecodeMatch[1],

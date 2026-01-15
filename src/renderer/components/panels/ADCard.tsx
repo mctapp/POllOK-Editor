@@ -14,6 +14,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { AudioDescription } from '../../../shared/types';
+import { trimSilenceFromStart } from '../../lib/audioUtils';
 import {
   useADStore,
   useVideoStore,
@@ -292,7 +293,11 @@ export function ADCard({ description }: ADCardProps) {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const arrayBuffer = await audioBlob.arrayBuffer();
+
+        // 시작 부분 무음 트리밍
+        const trimmedBlob = await trimSilenceFromStart(audioBlob);
+
+        const arrayBuffer = await trimmedBlob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
         try {
@@ -560,8 +565,8 @@ export function ADCard({ description }: ADCardProps) {
 
         {/* 푸터 - 활성 상태일 때만 표시 */}
         <div
-          className={`flex items-center justify-between overflow-hidden transition-all duration-300 ease-out ${
-            isActive ? 'opacity-100 max-h-12 mt-2' : 'opacity-0 max-h-0 mt-0'
+          className={`flex items-center justify-between transition-all duration-300 ease-out ${
+            isActive ? 'opacity-100 max-h-12 mt-2' : 'opacity-0 max-h-0 mt-0 overflow-hidden'
           }`}
         >
           <div className="flex items-center gap-3 text-xs text-gray-500">
