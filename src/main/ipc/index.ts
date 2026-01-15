@@ -152,9 +152,15 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 파일 내보내기 (쓰기)
   ipcMain.handle(
     IpcChannels.EXPORT_WRITE_FILE,
-    async (_, data: { path: string; content: string }) => {
+    async (_, data: { path: string; content: string | number[]; binary?: boolean }) => {
       try {
-        await fs.writeFile(data.path, data.content, 'utf-8');
+        if (data.binary && Array.isArray(data.content)) {
+          // 바이너리 데이터 (Excel 등)
+          await fs.writeFile(data.path, Buffer.from(data.content));
+        } else {
+          // 텍스트 데이터
+          await fs.writeFile(data.path, data.content as string, 'utf-8');
+        }
         return true;
       } catch (error) {
         console.error('Failed to export file:', error);

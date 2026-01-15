@@ -13,8 +13,8 @@ import { Mic, MicOff, Volume2, X } from 'lucide-react';
 import { useUIStore, useVideoStore, useMemoStore, useProjectStore } from '../stores';
 import { formatTimecodeFromFrame } from '../lib/timecode';
 
-// 비프음 생성 함수
-function playBeep(frequency: number, duration: number, volume: number = 0.3) {
+// 비프음 생성 함수 (볼륨: 0.12 - 인지할 수 있을 정도로 낮게)
+function playBeep(frequency: number, duration: number, volume: number = 0.12) {
   try {
     const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();

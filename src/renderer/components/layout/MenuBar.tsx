@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronRight, BookMarked } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   useProjectStore,
   useUIStore,
@@ -142,6 +143,169 @@ export function MenuBar() {
     await window.api.export.writeFile({ path, content });
   };
 
+  // 타임코드 문자열 포맷 (HH:MM:SS:FF)
+  const formatTimecodeString = (frame: number) => {
+    const tc = formatTimecode(frame);
+    return `${String(tc.hours).padStart(2, '0')}:${String(tc.minutes).padStart(2, '0')}:${String(tc.seconds).padStart(2, '0')}:${String(Math.floor(frame % fps)).padStart(2, '0')}`;
+  };
+
+  // CSV 형식 내보내기
+  const handleExportCSV = async () => {
+    if (!project) return;
+
+    const path = await window.api.export.selectPath({
+      defaultPath: `${project.title}.csv`,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    });
+
+    if (!path) return;
+
+    // CSV 헤더
+    const headers = ['타입', '시작 타임코드', '종료 타임코드', '시작(초)', '종료(초)', '내용', '유형', '화자'];
+
+    // AD 데이터
+    const adRows = descriptions.map((desc) => [
+      'AD',
+      formatTimecodeString(desc.tcIn),
+      formatTimecodeString(desc.tcOut),
+      formatTimecode(desc.tcIn).totalSeconds.toFixed(3),
+      formatTimecode(desc.tcOut).totalSeconds.toFixed(3),
+      `"${(desc.text || '').replace(/"/g, '""')}"`,
+      desc.type,
+      '',
+    ]);
+
+    // CC 데이터
+    const ccRows = captions.map((cap) => [
+      'CC',
+      formatTimecodeString(cap.tcIn),
+      formatTimecodeString(cap.tcOut),
+      formatTimecode(cap.tcIn).totalSeconds.toFixed(3),
+      formatTimecode(cap.tcOut).totalSeconds.toFixed(3),
+      `"${(cap.text || '').replace(/"/g, '""')}"`,
+      cap.type,
+      cap.speakerId || '',
+    ]);
+
+    // 모든 행을 타임코드 순으로 정렬
+    const allRows = [...adRows, ...ccRows].sort((a, b) => {
+      return parseFloat(a[3] as string) - parseFloat(b[3] as string);
+    });
+
+    // UTF-8 BOM + CSV 내용
+    const bom = '\uFEFF';
+    const content = bom + [headers, ...allRows].map((row) => row.join(',')).join('\n');
+    await window.api.export.writeFile({ path, content });
+  };
+
+  // Excel 형식 내보내기
+  const handleExportExcel = async () => {
+    if (!project) return;
+
+    const path = await window.api.export.selectPath({
+      defaultPath: `${project.title}.xlsx`,
+      filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+    });
+
+    if (!path) return;
+
+    // AD 시트 데이터
+    const adData = [
+      ['번호', '시작 타임코드', '종료 타임코드', '시작(초)', '종료(초)', '내용', '유형'],
+      ...descriptions.map((desc, index) => [
+        index + 1,
+        formatTimecodeString(desc.tcIn),
+        formatTimecodeString(desc.tcOut),
+        formatTimecode(desc.tcIn).totalSeconds,
+        formatTimecode(desc.tcOut).totalSeconds,
+        desc.text || '',
+        desc.type,
+      ]),
+    ];
+
+    // CC 시트 데이터
+    const ccData = [
+      ['번호', '시작 타임코드', '종료 타임코드', '시작(초)', '종료(초)', '내용', '유형', '화자'],
+      ...captions.map((cap, index) => [
+        index + 1,
+        formatTimecodeString(cap.tcIn),
+        formatTimecodeString(cap.tcOut),
+        formatTimecode(cap.tcIn).totalSeconds,
+        formatTimecode(cap.tcOut).totalSeconds,
+        cap.text || '',
+        cap.type,
+        cap.speakerId || '',
+      ]),
+    ];
+
+    // 전체 데이터 시트 (타임코드 순 정렬)
+    const allData = [
+      ['타입', '번호', '시작 타임코드', '종료 타임코드', '시작(초)', '종료(초)', '내용', '유형', '화자'],
+      ...([
+        ...descriptions.map((desc, index) => ({
+          type: 'AD',
+          index: index + 1,
+          tcIn: desc.tcIn,
+          tcInStr: formatTimecodeString(desc.tcIn),
+          tcOutStr: formatTimecodeString(desc.tcOut),
+          tcInSec: formatTimecode(desc.tcIn).totalSeconds,
+          tcOutSec: formatTimecode(desc.tcOut).totalSeconds,
+          text: desc.text || '',
+          subType: desc.type,
+          speaker: '',
+        })),
+        ...captions.map((cap, index) => ({
+          type: 'CC',
+          index: index + 1,
+          tcIn: cap.tcIn,
+          tcInStr: formatTimecodeString(cap.tcIn),
+          tcOutStr: formatTimecodeString(cap.tcOut),
+          tcInSec: formatTimecode(cap.tcIn).totalSeconds,
+          tcOutSec: formatTimecode(cap.tcOut).totalSeconds,
+          text: cap.text || '',
+          subType: cap.type,
+          speaker: cap.speakerId || '',
+        })),
+      ]
+        .sort((a, b) => a.tcIn - b.tcIn)
+        .map((item) => [
+          item.type,
+          item.index,
+          item.tcInStr,
+          item.tcOutStr,
+          item.tcInSec,
+          item.tcOutSec,
+          item.text,
+          item.subType,
+          item.speaker,
+        ])),
+    ];
+
+    // 워크북 생성
+    const workbook = XLSX.utils.book_new();
+
+    // 전체 시트
+    const allSheet = XLSX.utils.aoa_to_sheet(allData);
+    XLSX.utils.book_append_sheet(workbook, allSheet, '전체');
+
+    // AD 시트
+    if (descriptions.length > 0) {
+      const adSheet = XLSX.utils.aoa_to_sheet(adData);
+      XLSX.utils.book_append_sheet(workbook, adSheet, 'AD (음성해설)');
+    }
+
+    // CC 시트
+    if (captions.length > 0) {
+      const ccSheet = XLSX.utils.aoa_to_sheet(ccData);
+      XLSX.utils.book_append_sheet(workbook, ccSheet, 'CC (자막)');
+    }
+
+    // 파일 저장
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const uint8Array = new Uint8Array(buffer);
+    await window.api.export.writeFile({ path, content: Array.from(uint8Array), binary: true });
+  };
+
   const handleNewProject = () => {
     createProject('새 프로젝트');
   };
@@ -272,8 +436,16 @@ export function MenuBar() {
         label: '문서 형식',
         submenu: [
           { label: 'JSON', action: handleExportJSON, disabled: !project },
-          { label: 'Excel (.xlsx)', disabled: true },
-          { label: 'CSV', disabled: true },
+          {
+            label: 'Excel (.xlsx)',
+            action: handleExportExcel,
+            disabled: !project || (descriptions.length === 0 && captions.length === 0),
+          },
+          {
+            label: 'CSV',
+            action: handleExportCSV,
+            disabled: !project || (descriptions.length === 0 && captions.length === 0),
+          },
         ],
       },
     ],
