@@ -9,9 +9,30 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Mic, MicOff, Volume2, EyeOff, X } from 'lucide-react';
+import { Mic, MicOff, Volume2, X } from 'lucide-react';
 import { useUIStore, useVideoStore, useMemoStore, useProjectStore } from '../stores';
 import { formatTimecodeFromFrame } from '../lib/timecode';
+
+// 비프음 생성 함수
+function playBeep(frequency: number, duration: number, volume: number = 0.3) {
+  try {
+    const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+    gainNode.gain.value = volume;
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration / 1000);
+  } catch (error) {
+    console.warn('비프음 재생 실패:', error);
+  }
+}
 
 export function SoModeOverlay() {
   const { soMode, soRecording, toggleSoMode, setSoRecording } = useUIStore();
@@ -36,6 +57,9 @@ export function SoModeOverlay() {
   // 녹음 시작
   const startRecording = useCallback(async () => {
     try {
+      // 녹음 시작 비프음 (높은 음 - 시작 알림)
+      playBeep(880, 150);
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
@@ -99,6 +123,10 @@ export function SoModeOverlay() {
   // 녹음 종료
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      // 녹음 종료 비프음 (낮은 음 두 번 - 종료 알림)
+      playBeep(440, 100);
+      setTimeout(() => playBeep(440, 100), 150);
+
       mediaRecorderRef.current.stop();
     }
   }, []);
@@ -153,8 +181,8 @@ export function SoModeOverlay() {
       {/* 상단 정보 바 */}
       <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between text-white/80">
         <div className="flex items-center gap-4">
-          <EyeOff className="w-5 h-5" />
-          <span className="text-lg font-medium">SO 모드 (Sound Only)</span>
+          <span className="px-2 py-1 bg-accent-yellow text-brand-black text-sm font-bold rounded">SO</span>
+          <span className="text-lg font-medium">Sound Only 모드</span>
         </div>
         <button
           onClick={toggleSoMode}

@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   X,
   Subtitles,
-  EyeOff,
 } from 'lucide-react';
 import {
   useVideoStore,
@@ -668,13 +667,15 @@ export function VideoPanel() {
             {/* SO 모드 토글 */}
             <button
               onClick={toggleSoMode}
-              className={`p-1 rounded transition-colors ${
-                soMode ? 'text-accent-yellow' : 'text-gray-500 hover:text-white'
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                soMode
+                  ? 'bg-accent-yellow text-brand-black border-accent-yellow'
+                  : 'text-gray-500 border-gray-500 hover:text-white hover:border-white'
               }`}
               title="SO 모드 (F3)"
               disabled={!source}
             >
-              <EyeOff className="w-4 h-4" />
+              SO
             </button>
 
             {/* 오버레이 토글 */}
