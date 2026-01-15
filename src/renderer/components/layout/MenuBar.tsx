@@ -33,6 +33,8 @@ export function MenuBar() {
     toggleTimeline,
     showGuidePanel,
     toggleGuidePanel,
+    soMode,
+    toggleSoMode,
   } = useUIStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
@@ -213,6 +215,12 @@ export function MenuBar() {
         label: `표현 사전 (${expressions.length})`,
         shortcut: 'F2',
         action: () => setShowExpressionDictionary(true),
+      },
+      { separator: true },
+      {
+        label: soMode ? '● SO 모드 (Sound Only)' : '◯ SO 모드 (Sound Only)',
+        shortcut: 'F3',
+        action: toggleSoMode,
       },
       { separator: true },
       {

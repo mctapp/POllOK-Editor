@@ -7,6 +7,7 @@ import { VideoPanel } from '../panels/VideoPanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import { TimelinePanel } from '../panels/TimelinePanel';
 import { GuidePanel } from '../panels/GuidePanel';
+import { SoModeOverlay } from '../SoModeOverlay';
 import { useUIStore } from '../../stores';
 
 export function MainLayout() {
@@ -85,6 +86,9 @@ export function MainLayout() {
 
       {/* 상태바 */}
       <StatusBar />
+
+      {/* SO 모드 오버레이 */}
+      <SoModeOverlay />
     </div>
   );
 }

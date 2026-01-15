@@ -40,10 +40,13 @@ export interface Memo {
   title: string;
   content: string;
   completed: boolean;
-  cardId: string; // AD 또는 CC 카드 ID
-  cardType: 'ad' | 'cc';
+  cardId: string; // AD 또는 CC 카드 ID (SO 메모는 빈 문자열)
+  cardType: 'ad' | 'cc' | 'so'; // SO: Sound Only 모드 메모
   createdAt: string;
   modifiedAt: string;
+  // SO 모드 전용 필드
+  timecode?: number; // 프레임 단위 타임코드 (SO 메모)
+  audioFile?: string; // 녹음 파일 경로 (SO 메모)
 }
 
 // Audio Description Types

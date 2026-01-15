@@ -21,7 +21,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
 
   const { addDescription } = useADStore();
   const { addCaption } = useCCStore();
-  const { zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel } = useUIStore();
+  const { zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel, toggleSoMode } = useUIStore();
   const { shortcuts } = useSettingsStore();
 
   /**
@@ -176,6 +176,13 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         return;
       }
 
+      // F3 - SO 모드 토글
+      if (e.key === 'F3') {
+        e.preventDefault();
+        toggleSoMode();
+        return;
+      }
+
       // 탭 전환 (Ctrl/Cmd + 1, 2, 3)
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const hasModKey = isMac ? e.metaKey : e.ctrlKey;
@@ -220,6 +227,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
       zoomOut,
       setActiveTab,
       toggleFeedbackPanel,
+      toggleSoMode,
       shortcuts,
       matchesShortcut,
     ]

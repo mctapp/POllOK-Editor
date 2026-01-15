@@ -6,7 +6,7 @@ interface MemoState {
   // 상태
   memos: Memo[];
   expandedIds: Set<string>;
-  filter: 'all' | 'ad' | 'cc' | 'incomplete' | 'completed';
+  filter: 'all' | 'ad' | 'cc' | 'so' | 'incomplete' | 'completed';
 
   // 액션
   addMemo: (memo: Partial<Memo>) => string;
@@ -19,6 +19,8 @@ interface MemoState {
   setFilter: (filter: MemoState['filter']) => void;
   getMemosForCard: (cardId: string, cardType: 'ad' | 'cc') => Memo[];
   getMemoCount: (cardId: string, cardType: 'ad' | 'cc') => number;
+  getSoMemos: () => Memo[];
+  getSoMemoCount: () => number;
   setMemos: (memos: Memo[]) => void;
   reset: () => void;
 }
@@ -40,6 +42,9 @@ export const useMemoStore = create<MemoState>((set, get) => ({
       cardType: memo.cardType ?? 'ad',
       createdAt: now,
       modifiedAt: now,
+      // SO 모드 전용 필드
+      timecode: memo.timecode,
+      audioFile: memo.audioFile,
     };
 
     set((state) => ({
@@ -113,6 +118,16 @@ export const useMemoStore = create<MemoState>((set, get) => ({
   getMemoCount: (cardId, cardType) => {
     const { memos } = get();
     return memos.filter((m) => m.cardId === cardId && m.cardType === cardType).length;
+  },
+
+  getSoMemos: () => {
+    const { memos } = get();
+    return memos.filter((m) => m.cardType === 'so').sort((a, b) => (a.timecode ?? 0) - (b.timecode ?? 0));
+  },
+
+  getSoMemoCount: () => {
+    const { memos } = get();
+    return memos.filter((m) => m.cardType === 'so').length;
   },
 
   setMemos: (memos) => {
