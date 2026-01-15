@@ -4,19 +4,15 @@ import path from 'path';
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [
+      externalizeDepsPlugin({
+        include: ['better-sqlite3', 'fluent-ffmpeg'],
+      }),
+    ],
     resolve: {
       alias: {
         '@shared': path.resolve(__dirname, './src/shared'),
         '@main': path.resolve(__dirname, './src/main'),
-      },
-    },
-    build: {
-      rollupOptions: {
-        external: [
-          'better-sqlite3',
-          'fluent-ffmpeg',
-        ],
       },
     },
   },
