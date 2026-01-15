@@ -22,8 +22,8 @@ const STATUS_LABELS: Record<FeedbackStatus, string> = {
 };
 
 const STATUS_COLORS: Record<FeedbackStatus, string> = {
-  pending: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-  in_progress: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
+  pending: 'bg-brand-brown/20 text-brand-brown border-brand-brown/50',
+  in_progress: 'bg-accent-yellow/20 text-accent-yellow border-accent-yellow/50',
   resolved: 'bg-accent-green/20 text-accent-green border-accent-green/50',
 };
 
@@ -41,8 +41,8 @@ export function FeedbackPanel() {
   const { descriptions, selectDescription } = useADStore();
   const { captions, selectCaption } = useCCStore();
   const { fps, seekToFrame } = useVideoStore();
-  const { setActiveTab, appMode } = useUIStore();
-  const { getGuideByCode } = useGuideStore();
+  const { setActiveTab, appMode, showGuidePanel, toggleGuidePanel } = useUIStore();
+  const { getGuideByCode, selectGuide } = useGuideStore();
 
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
@@ -150,20 +150,20 @@ export function FeedbackPanel() {
           <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
             <span>진행 상황</span>
             <span className="flex items-center gap-2">
-              <span className="text-orange-400">{pendingCount}</span>
+              <span className="text-brand-brown">{pendingCount}</span>
               <span className="text-gray-600">/</span>
-              <span className="text-blue-400">{inProgressCount}</span>
+              <span className="text-accent-yellow">{inProgressCount}</span>
               <span className="text-gray-600">/</span>
               <span className="text-accent-green">{resolvedCount}</span>
             </span>
           </div>
           <div className="h-1.5 bg-dark-surface rounded-full overflow-hidden flex">
             <div
-              className="h-full bg-orange-500 transition-all duration-300"
+              className="h-full bg-brand-brown transition-all duration-300"
               style={{ width: `${(pendingCount / totalCount) * 100}%` }}
             />
             <div
-              className="h-full bg-blue-500 transition-all duration-300"
+              className="h-full bg-accent-yellow transition-all duration-300"
               style={{ width: `${(inProgressCount / totalCount) * 100}%` }}
             />
             <div
@@ -189,8 +189,8 @@ export function FeedbackPanel() {
                   feedback.status === 'resolved'
                     ? 'bg-dark-surface/50 border-dark-border/50'
                     : feedback.status === 'in_progress'
-                    ? 'bg-dark-surface border-blue-500/30'
-                    : 'bg-dark-surface border-orange-500/30'
+                    ? 'bg-dark-surface border-accent-yellow/30'
+                    : 'bg-dark-surface border-brand-brown/30'
                 }`}
               >
                 {/* 헤더 */}
@@ -213,10 +213,18 @@ export function FeedbackPanel() {
                     {STATUS_LABELS[feedback.status]}
                   </span>
 
-                  {/* 가이드 코드 */}
-                  <span className="text-xs font-mono text-gray-500">
+                  {/* 가이드 코드 - 클릭 시 가이드 패널 열기 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selectGuide(feedback.guideCode);
+                      if (!showGuidePanel) toggleGuidePanel();
+                    }}
+                    className="text-xs font-mono text-accent-yellow hover:text-accent-yellow/80 hover:underline"
+                    title="가이드 상세 보기 (F1)"
+                  >
                     {feedback.guideCode}
-                  </span>
+                  </button>
 
                   {/* 소분류 */}
                   <div className="flex-1 min-w-0">
@@ -301,7 +309,7 @@ export function FeedbackPanel() {
                               {feedback.status === 'pending' && (
                                 <button
                                   onClick={() => setStatus(feedback.id, 'in_progress')}
-                                  className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
+                                  className="flex items-center gap-1 px-2 py-1 text-xs bg-accent-yellow/20 text-accent-yellow rounded hover:bg-accent-yellow/30 transition-colors"
                                 >
                                   <CheckCircle className="w-3 h-3" />
                                   수정완료

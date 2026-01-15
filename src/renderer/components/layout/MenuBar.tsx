@@ -16,7 +16,7 @@ interface MenuItem {
 export function MenuBar() {
   const [showPreferences, setShowPreferences] = useState(false);
   const { project, createProject, saveProject, closeProject } = useProjectStore();
-  const { setOpenDialog, setActiveTab, isTimelineCollapsed, toggleTimeline, showFeedbackPanel, toggleFeedbackPanel } = useUIStore();
+  const { setOpenDialog, setActiveTab, isTimelineCollapsed, toggleTimeline, showGuidePanel, toggleGuidePanel } = useUIStore();
   const { descriptions } = useADStore();
   const { captions } = useCCStore();
   const { fps } = useVideoStore();
@@ -182,14 +182,15 @@ export function MenuBar() {
       { label: '환경설정...', shortcut: `${modKey}+,`, action: () => setShowPreferences(true) },
     ],
     View: [
-      { label: 'AD 패널', shortcut: `${modKey}+1`, action: () => setActiveTab('ad') },
-      { label: 'CC 패널', shortcut: `${modKey}+2`, action: () => setActiveTab('cc') },
+      { label: '음성해설 패널', shortcut: `${modKey}+1`, action: () => setActiveTab('ad') },
+      { label: '자막해설 패널', shortcut: `${modKey}+2`, action: () => setActiveTab('cc') },
       { label: '메모 패널', shortcut: `${modKey}+3`, action: () => setActiveTab('memo') },
+      { label: '피드백 패널', shortcut: `${modKey}+4`, action: () => setActiveTab('feedback') },
       { separator: true },
       {
-        label: showFeedbackPanel ? '● 피드백 패널' : '◯ 피드백 패널',
-        shortcut: `${modKey}+4`,
-        action: toggleFeedbackPanel,
+        label: showGuidePanel ? '● 가이드 패널' : '◯ 가이드 패널',
+        shortcut: 'F1',
+        action: toggleGuidePanel,
       },
       { separator: true },
       {

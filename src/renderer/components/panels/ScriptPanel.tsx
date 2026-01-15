@@ -107,7 +107,7 @@ export function ScriptPanel() {
           onClick={() => setActiveTab('ad')}
         >
           <AudioLines className="w-4 h-4" />
-          AD ({descriptions.length})
+          음성해설 ({descriptions.length})
           {activeTab === 'ad' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-brown" />
           )}
@@ -121,7 +121,7 @@ export function ScriptPanel() {
           onClick={() => setActiveTab('cc')}
         >
           <Subtitles className="w-4 h-4" />
-          CC ({captions.length})
+          자막해설 ({captions.length})
           {activeTab === 'cc' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-green" />
           )}
@@ -135,7 +135,7 @@ export function ScriptPanel() {
           onClick={() => setActiveTab('memo')}
         >
           <StickyNote className="w-4 h-4" />
-          Memo ({memos.length})
+          메모 ({memos.length})
           {activeTab === 'memo' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-yellow" />
           )}
@@ -184,7 +184,7 @@ export function ScriptPanel() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`${activeTab === 'ad' ? 'AD' : 'CC'} 검색...`}
+                placeholder={`${activeTab === 'ad' ? '음성해설' : '자막해설'} 검색...`}
                 className="w-full pl-8 pr-3 py-1.5 text-sm bg-dark-bg border border-dark-border rounded focus:border-brand-brown focus:outline-none text-white placeholder:text-gray-600"
               />
             </div>
