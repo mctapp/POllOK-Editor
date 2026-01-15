@@ -667,10 +667,10 @@ export function VideoPanel() {
             {/* SO 모드 토글 */}
             <button
               onClick={toggleSoMode}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+              className={`px-1.5 py-0.5 rounded border text-[10px] font-bold transition-colors ${
                 soMode
                   ? 'bg-accent-yellow text-brand-black border-accent-yellow'
-                  : 'text-gray-500 border-gray-500 hover:text-white hover:border-white'
+                  : 'text-gray-500 border-dark-border hover:text-white hover:border-gray-400'
               }`}
               title="SO 모드 (F3)"
               disabled={!source}
