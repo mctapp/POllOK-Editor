@@ -21,7 +21,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
 
   const { addDescription } = useADStore();
   const { addCaption } = useCCStore();
-  const { zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel, toggleSoMode } = useUIStore();
+  const { zoomIn, zoomOut, setActiveTab, toggleFeedbackPanel, toggleSoMode, soMode } = useUIStore();
   const { shortcuts } = useSettingsStore();
 
   /**
@@ -61,10 +61,10 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         return;
       }
 
-      // 재생/일시정지
+      // 재생/일시정지 (SO 모드에서는 SO 모드 자체 핸들러가 처리)
       if (matchesShortcut(e, shortcuts.playPause)) {
         e.preventDefault();
-        if (source) togglePlay();
+        if (source && !soMode) togglePlay();
         return;
       }
 
@@ -176,8 +176,8 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         return;
       }
 
-      // F3 - SO 모드 토글
-      if (e.key === 'F3') {
+      // SO 모드 토글
+      if (matchesShortcut(e, shortcuts.toggleSoMode)) {
         e.preventDefault();
         toggleSoMode();
         return;
@@ -228,6 +228,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
       setActiveTab,
       toggleFeedbackPanel,
       toggleSoMode,
+      soMode,
       shortcuts,
       matchesShortcut,
     ]

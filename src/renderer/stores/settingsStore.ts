@@ -21,6 +21,9 @@ export interface KeyboardShortcuts {
   // 카드
   addADCard: string;
   addCCCard: string;
+
+  // SO 모드
+  toggleSoMode: string;
 }
 
 /**
@@ -110,6 +113,7 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   zoomOut: '-',
   addADCard: 'Ctrl+D',
   addCCCard: 'Ctrl+T',
+  toggleSoMode: 'F3',
 };
 
 /**
@@ -226,4 +230,5 @@ export const SHORTCUT_LABELS: Record<keyof KeyboardShortcuts, string> = {
   zoomOut: '타임라인 축소',
   addADCard: 'AD 카드 추가',
   addCCCard: 'CC 카드 추가',
+  toggleSoMode: 'SO 모드 전환',
 };
