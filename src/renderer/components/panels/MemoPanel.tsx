@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -12,7 +12,6 @@ import {
   Mic,
   Play,
   Pause,
-  Clock,
 } from 'lucide-react';
 import { useMemoStore, useADStore, useCCStore, useVideoStore, useUIStore } from '../../stores';
 import type { Memo } from '../../../shared/types';
@@ -173,11 +172,22 @@ export function MemoPanel() {
   };
 
   // SO 메모 노트 저장
-  const handleSaveNote = (memoId: string) => {
+  const handleSaveNote = useCallback((memoId: string) => {
     updateMemo(memoId, { content: noteText });
     setEditingNoteId(null);
     setNoteText('');
-  };
+  }, [noteText, updateMemo]);
+
+  // 노트 textarea 키 핸들러 (Enter 저장, Shift+Enter 줄바꿈)
+  const handleNoteKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>, memoId: string) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveNote(memoId);
+    } else if (e.key === 'Escape') {
+      setEditingNoteId(null);
+      setNoteText('');
+    }
+  }, [handleSaveNote]);
 
   const completedCount = memos.filter((m) => m.completed).length;
   const totalCount = memos.length;
@@ -259,12 +269,15 @@ export function MemoPanel() {
                 }`}
               >
                 {/* 헤더 */}
-                <div
-                  className="flex items-center gap-2 p-2 cursor-pointer"
-                  onClick={() => toggleExpand(memo.id)}
-                >
+                <div className="flex items-center gap-2 p-2 cursor-pointer">
                   {/* 펼치기/접기 아이콘 */}
-                  <button className="p-0.5 text-gray-500">
+                  <button
+                    className="p-0.5 text-gray-500 hover:text-white transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpand(memo.id);
+                    }}
+                  >
                     {isExpanded ? (
                       <ChevronDown className="w-4 h-4" />
                     ) : (
@@ -288,8 +301,11 @@ export function MemoPanel() {
                     {memo.completed && <Check className="w-4 h-4" />}
                   </button>
 
-                  {/* 제목 */}
-                  <div className="flex-1 min-w-0">
+                  {/* 제목 (클릭하면 펼침/접힘) */}
+                  <div
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => toggleExpand(memo.id)}
+                  >
                     <p
                       className={`text-sm truncate ${
                         memo.completed ? 'text-gray-500 line-through' : 'text-white'
@@ -305,7 +321,7 @@ export function MemoPanel() {
                       memo.cardType === 'ad'
                         ? 'bg-brand-brown/30 text-brand-brown'
                         : memo.cardType === 'so'
-                          ? 'bg-purple-500/30 text-purple-400'
+                          ? 'bg-accent-yellow/30 text-accent-yellow'
                           : 'bg-accent-green/30 text-accent-green'
                     }`}
                   >
@@ -325,11 +341,9 @@ export function MemoPanel() {
                           className="flex items-center gap-2 text-sm text-gray-500 bg-dark-bg/50 rounded p-2 mb-2 cursor-pointer hover:bg-dark-bg group"
                           onClick={() => handleNavigateToCard(memo)}
                         >
-                          <Clock className="w-4 h-4 text-purple-400" />
                           <span className="font-timecode text-gray-400">
                             {memo.timecode !== undefined ? formatTimecode(memo.timecode) : '--:--'}
                           </span>
-                          <span className="text-gray-600 text-xs">클릭하여 이동</span>
                           <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-accent-yellow flex-shrink-0 ml-auto" />
                         </div>
 
@@ -343,8 +357,8 @@ export function MemoPanel() {
                               }}
                               className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
                                 playingMemoId === memo.id
-                                  ? 'bg-purple-500 text-white'
-                                  : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                                  ? 'bg-accent-yellow text-brand-black'
+                                  : 'bg-accent-yellow/20 text-accent-yellow hover:bg-accent-yellow/30'
                               }`}
                             >
                               {playingMemoId === memo.id ? (
@@ -372,7 +386,8 @@ export function MemoPanel() {
                             <textarea
                               value={noteText}
                               onChange={(e) => setNoteText(e.target.value)}
-                              placeholder="메모를 입력하세요..."
+                              onKeyDown={(e) => handleNoteKeyDown(e, memo.id)}
+                              placeholder="메모를 입력하세요... (Enter: 저장, Shift+Enter: 줄바꿈)"
                               className="w-full p-2 text-sm bg-dark-bg border border-dark-border rounded focus:border-accent-yellow focus:outline-none text-white resize-none"
                               rows={3}
                               autoFocus
@@ -396,17 +411,20 @@ export function MemoPanel() {
                             </div>
                           </div>
                         ) : (
-                          <>
+                          <div
+                            className="mb-2 cursor-pointer"
+                            onDoubleClick={() => handleStartEditNote(memo)}
+                          >
                             {memo.content ? (
-                              <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap leading-relaxed bg-dark-bg/30 p-2 rounded">
+                              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed bg-dark-bg/30 p-2 rounded hover:bg-dark-bg/50">
                                 {memo.content}
                               </p>
                             ) : (
-                              <p className="text-xs text-gray-600 mb-2 italic">
-                                메모가 없습니다
+                              <p className="text-xs text-gray-600 italic bg-dark-bg/30 p-2 rounded hover:bg-dark-bg/50">
+                                더블클릭하여 메모 추가
                               </p>
                             )}
-                          </>
+                          </div>
                         )}
                       </>
                     ) : (
@@ -448,7 +466,7 @@ export function MemoPanel() {
                             e.stopPropagation();
                             handleStartEditNote(memo);
                           }}
-                          className="p-1 text-gray-500 hover:text-purple-400 transition-colors"
+                          className="p-1 text-gray-500 hover:text-accent-yellow transition-colors"
                           title="메모 편집"
                         >
                           <Pencil className="w-3.5 h-3.5" />
