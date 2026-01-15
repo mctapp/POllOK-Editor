@@ -19,6 +19,8 @@ interface UIState {
   searchQuery: string; // 검색어
   timelineZoom: number; // 타임라인 줌 레벨 (0.5 ~ 10)
   showGuidePanel: boolean; // 가이드 안내 패널 표시
+  soMode: boolean; // Sound Only 모드 (화면 블랙아웃, 소리만 재생)
+  soRecording: boolean; // SO 모드 녹음 중 여부
 
   // 액션
   setAppMode: (mode: AppMode) => void;
@@ -36,6 +38,8 @@ interface UIState {
   zoomIn: () => void;
   zoomOut: () => void;
   toggleGuidePanel: () => void;
+  toggleSoMode: () => void;
+  setSoRecording: (recording: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -52,6 +56,8 @@ export const useUIStore = create<UIState>((set) => ({
   searchQuery: '',
   timelineZoom: 1,
   showGuidePanel: false,
+  soMode: false,
+  soRecording: false,
 
   setAppMode: (appMode) => set({ appMode }),
   setActiveTab: (activeTab) => set({ activeTab }),
@@ -80,4 +86,8 @@ export const useUIStore = create<UIState>((set) => ({
   zoomOut: () => set((state) => ({ timelineZoom: Math.max(0.5, state.timelineZoom / 1.25) })),
 
   toggleGuidePanel: () => set((state) => ({ showGuidePanel: !state.showGuidePanel })),
+
+  toggleSoMode: () => set((state) => ({ soMode: !state.soMode, soRecording: false })),
+
+  setSoRecording: (soRecording) => set({ soRecording }),
 }));
