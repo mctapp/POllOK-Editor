@@ -298,12 +298,23 @@ export function ADCard({ description }: ADCardProps) {
         const trimmedBlob = await trimSilenceFromStart(audioBlob);
 
         const arrayBuffer = await trimmedBlob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        let audioData = Array.from(new Uint8Array(arrayBuffer));
+
+        // FFmpeg 노이즈 제거 시도
+        try {
+          console.log('노이즈 제거 처리 중...');
+          const processedData = await window.api.removeNoise(audioData);
+          audioData = processedData;
+          console.log('노이즈 제거 완료');
+        } catch (error) {
+          console.warn('노이즈 제거 실패, 원본 사용:', error);
+          // 노이즈 제거 실패 시 원본 데이터 사용
+        }
 
         try {
           const filePath = await window.api.saveRecording(
             description.id,
-            Array.from(uint8Array),
+            audioData,
             projectPath || undefined
           );
           if (filePath) {

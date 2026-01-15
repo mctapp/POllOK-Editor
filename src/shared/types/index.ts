@@ -197,4 +197,24 @@ export const IpcChannels = {
 
   // Recording
   RECORDING_SAVE: 'recording:save',
+  RECORDING_REMOVE_NOISE: 'recording:removeNoise',
+
+  // Expression Dictionary (SQLite)
+  EXPR_ADD_MOVIE: 'expr:addMovie',
+  EXPR_UPDATE_MOVIE: 'expr:updateMovie',
+  EXPR_DELETE_MOVIE: 'expr:deleteMovie',
+  EXPR_GET_ALL_MOVIES: 'expr:getAllMovies',
+  EXPR_ADD_EXPRESSIONS_BULK: 'expr:addExpressionsBulk',
+  EXPR_UPDATE_EXPRESSION: 'expr:updateExpression',
+  EXPR_DELETE_EXPRESSION: 'expr:deleteExpression',
+  EXPR_SEARCH: 'expr:search',
+  EXPR_SEARCH_BY_KEYWORDS: 'expr:searchByKeywords',
+  EXPR_GET_BY_MOVIE: 'expr:getByMovie',
+  EXPR_GET_ALL: 'expr:getAll',
+  EXPR_ADD_SYNONYM: 'expr:addSynonym',
+  EXPR_DELETE_SYNONYM: 'expr:deleteSynonym',
+  EXPR_GET_ALL_SYNONYMS: 'expr:getAllSynonyms',
+  EXPR_FIND_SYNONYM: 'expr:findSynonym',
+  EXPR_GET_STATS: 'expr:getStats',
+  EXPR_IMPORT_LEGACY: 'expr:importLegacy',
 } as const;
