@@ -3,8 +3,23 @@ import { IpcChannels } from '../../shared/types';
 import { SUPPORTED_VIDEO_FORMATS, PROJECT_FILE_FILTER } from '../../shared/constants';
 import fs from 'fs/promises';
 import crypto from 'crypto';
-import * as expressionDb from '../database/expressionDb';
 import { removeNoiseFromBuffer } from '../audio/noiseRemoval';
+
+// SQLite 모듈 (선택적 로딩)
+let expressionDb: typeof import('../database/expressionDb') | null = null;
+let sqliteAvailable = false;
+
+async function loadSqliteModule() {
+  try {
+    expressionDb = await import('../database/expressionDb');
+    expressionDb.initDatabase();
+    sqliteAvailable = true;
+    console.log('SQLite module loaded successfully');
+  } catch (error) {
+    console.warn('SQLite module not available, expression dictionary will be disabled:', error);
+    sqliteAvailable = false;
+  }
+}
 
 export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 윈도우 컨트롤
@@ -204,13 +219,22 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
 
   // ============ Expression Dictionary (SQLite) ============
 
-  // 데이터베이스 초기화
-  expressionDb.initDatabase();
+  // 데이터베이스 초기화 (비동기)
+  loadSqliteModule();
+
+  // SQLite 사용 불가 시 빈 결과 반환하는 헬퍼
+  const requireSqlite = () => {
+    if (!sqliteAvailable || !expressionDb) {
+      throw new Error('SQLite not available. Please run: npx electron-rebuild -f -w better-sqlite3');
+    }
+    return expressionDb;
+  };
 
   // 영화 추가
-  ipcMain.handle(IpcChannels.EXPR_ADD_MOVIE, (_, movie: expressionDb.MovieRecord) => {
+  ipcMain.handle(IpcChannels.EXPR_ADD_MOVIE, (_, movie) => {
     try {
-      expressionDb.addMovie(movie);
+      const db = requireSqlite();
+      db.addMovie(movie);
       return true;
     } catch (error) {
       console.error('Failed to add movie:', error);
@@ -219,9 +243,10 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   // 영화 업데이트
-  ipcMain.handle(IpcChannels.EXPR_UPDATE_MOVIE, (_, movie: expressionDb.MovieRecord) => {
+  ipcMain.handle(IpcChannels.EXPR_UPDATE_MOVIE, (_, movie) => {
     try {
-      expressionDb.updateMovie(movie);
+      const db = requireSqlite();
+      db.updateMovie(movie);
       return true;
     } catch (error) {
       console.error('Failed to update movie:', error);
@@ -232,7 +257,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 영화 삭제
   ipcMain.handle(IpcChannels.EXPR_DELETE_MOVIE, (_, movieId: string) => {
     try {
-      expressionDb.deleteMovie(movieId);
+      const db = requireSqlite();
+      db.deleteMovie(movieId);
       return true;
     } catch (error) {
       console.error('Failed to delete movie:', error);
@@ -243,17 +269,19 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 모든 영화 조회
   ipcMain.handle(IpcChannels.EXPR_GET_ALL_MOVIES, () => {
     try {
-      return expressionDb.getAllMovies();
+      const db = requireSqlite();
+      return db.getAllMovies();
     } catch (error) {
       console.error('Failed to get movies:', error);
-      throw error;
+      return []; // SQLite 미사용시 빈 배열
     }
   });
 
   // 표현 일괄 추가
-  ipcMain.handle(IpcChannels.EXPR_ADD_EXPRESSIONS_BULK, (_, expressions: expressionDb.ExpressionRecord[]) => {
+  ipcMain.handle(IpcChannels.EXPR_ADD_EXPRESSIONS_BULK, (_, expressions) => {
     try {
-      expressionDb.addExpressionsBulk(expressions);
+      const db = requireSqlite();
+      db.addExpressionsBulk(expressions);
       return true;
     } catch (error) {
       console.error('Failed to add expressions:', error);
@@ -262,9 +290,10 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   // 표현 업데이트
-  ipcMain.handle(IpcChannels.EXPR_UPDATE_EXPRESSION, (_, expression: expressionDb.ExpressionRecord) => {
+  ipcMain.handle(IpcChannels.EXPR_UPDATE_EXPRESSION, (_, expression) => {
     try {
-      expressionDb.updateExpression(expression);
+      const db = requireSqlite();
+      db.updateExpression(expression);
       return true;
     } catch (error) {
       console.error('Failed to update expression:', error);
@@ -275,7 +304,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 표현 삭제
   ipcMain.handle(IpcChannels.EXPR_DELETE_EXPRESSION, (_, expressionId: string) => {
     try {
-      expressionDb.deleteExpression(expressionId);
+      const db = requireSqlite();
+      db.deleteExpression(expressionId);
       return true;
     } catch (error) {
       console.error('Failed to delete expression:', error);
@@ -286,47 +316,52 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 표현 검색
   ipcMain.handle(IpcChannels.EXPR_SEARCH, (_, keyword: string) => {
     try {
-      return expressionDb.searchExpressions(keyword);
+      const db = requireSqlite();
+      return db.searchExpressions(keyword);
     } catch (error) {
       console.error('Failed to search expressions:', error);
-      throw error;
+      return [];
     }
   });
 
   // 여러 키워드로 표현 검색 (유의어 확장)
   ipcMain.handle(IpcChannels.EXPR_SEARCH_BY_KEYWORDS, (_, keywords: string[]) => {
     try {
-      return expressionDb.searchExpressionsByKeywords(keywords);
+      const db = requireSqlite();
+      return db.searchExpressionsByKeywords(keywords);
     } catch (error) {
       console.error('Failed to search expressions by keywords:', error);
-      throw error;
+      return [];
     }
   });
 
   // 영화별 표현 조회
   ipcMain.handle(IpcChannels.EXPR_GET_BY_MOVIE, (_, movieId: string) => {
     try {
-      return expressionDb.getExpressionsByMovieId(movieId);
+      const db = requireSqlite();
+      return db.getExpressionsByMovieId(movieId);
     } catch (error) {
       console.error('Failed to get expressions by movie:', error);
-      throw error;
+      return [];
     }
   });
 
   // 모든 표현 조회
   ipcMain.handle(IpcChannels.EXPR_GET_ALL, () => {
     try {
-      return expressionDb.getAllExpressions();
+      const db = requireSqlite();
+      return db.getAllExpressions();
     } catch (error) {
       console.error('Failed to get all expressions:', error);
-      throw error;
+      return [];
     }
   });
 
   // 유의어 그룹 추가
-  ipcMain.handle(IpcChannels.EXPR_ADD_SYNONYM, (_, group: expressionDb.SynonymGroupRecord) => {
+  ipcMain.handle(IpcChannels.EXPR_ADD_SYNONYM, (_, group) => {
     try {
-      expressionDb.addSynonymGroup(group);
+      const db = requireSqlite();
+      db.addSynonymGroup(group);
       return true;
     } catch (error) {
       console.error('Failed to add synonym group:', error);
@@ -337,7 +372,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 유의어 그룹 삭제
   ipcMain.handle(IpcChannels.EXPR_DELETE_SYNONYM, (_, groupId: string) => {
     try {
-      expressionDb.deleteSynonymGroup(groupId);
+      const db = requireSqlite();
+      db.deleteSynonymGroup(groupId);
       return true;
     } catch (error) {
       console.error('Failed to delete synonym group:', error);
@@ -348,37 +384,41 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   // 모든 유의어 그룹 조회
   ipcMain.handle(IpcChannels.EXPR_GET_ALL_SYNONYMS, () => {
     try {
-      return expressionDb.getAllSynonymGroups();
+      const db = requireSqlite();
+      return db.getAllSynonymGroups();
     } catch (error) {
       console.error('Failed to get synonym groups:', error);
-      throw error;
+      return [];
     }
   });
 
   // 특정 단어의 유의어 그룹 찾기
   ipcMain.handle(IpcChannels.EXPR_FIND_SYNONYM, (_, word: string) => {
     try {
-      return expressionDb.findSynonymGroup(word);
+      const db = requireSqlite();
+      return db.findSynonymGroup(word);
     } catch (error) {
       console.error('Failed to find synonym group:', error);
-      throw error;
+      return undefined;
     }
   });
 
   // 통계 조회
   ipcMain.handle(IpcChannels.EXPR_GET_STATS, () => {
     try {
-      return expressionDb.getStats();
+      const db = requireSqlite();
+      return db.getStats();
     } catch (error) {
       console.error('Failed to get stats:', error);
-      throw error;
+      return { movieCount: 0, expressionCount: 0, highlightedCount: 0 };
     }
   });
 
   // 레거시 데이터 가져오기 (localStorage → SQLite 마이그레이션)
-  ipcMain.handle(IpcChannels.EXPR_IMPORT_LEGACY, (_, data: expressionDb.LegacyData) => {
+  ipcMain.handle(IpcChannels.EXPR_IMPORT_LEGACY, (_, data) => {
     try {
-      expressionDb.importLegacyData(data);
+      const db = requireSqlite();
+      db.importLegacyData(data);
       return true;
     } catch (error) {
       console.error('Failed to import legacy data:', error);
