@@ -252,7 +252,9 @@ export function MemoPanel() {
                             {formatTimecode(cardInfo.tcIn)}
                           </span>
                           <span className="mx-2">•</span>
-                          <span className="text-gray-400 line-clamp-1">{cardInfo.text || '(내용 없음)'}</span>
+                          <span className="text-gray-400 line-clamp-1">
+                            {cardInfo.text || '(내용 없음)'}
+                          </span>
                         </div>
                         <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-accent-yellow flex-shrink-0" />
                       </div>

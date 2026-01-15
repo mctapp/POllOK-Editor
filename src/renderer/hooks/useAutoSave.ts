@@ -8,7 +8,7 @@ const AUTO_SAVE_INTERVAL = 3 * 60 * 1000; // 3분
  * 프로젝트가 열려 있고 변경 사항이 있으면 3분마다 자동 저장
  */
 export function useAutoSave() {
-  const { project, filePath, isDirty, saveProject } = useProjectStore();
+  const { project, filePath, isDirty } = useProjectStore();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastSaveRef = useRef<number>(Date.now());
 

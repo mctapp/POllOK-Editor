@@ -53,9 +53,7 @@ export const useMemoStore = create<MemoState>((set, get) => ({
   updateMemo: (id, updates) => {
     set((state) => ({
       memos: state.memos.map((memo) =>
-        memo.id === id
-          ? { ...memo, ...updates, modifiedAt: new Date().toISOString() }
-          : memo
+        memo.id === id ? { ...memo, ...updates, modifiedAt: new Date().toISOString() } : memo
       ),
     }));
   },

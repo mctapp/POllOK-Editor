@@ -8,11 +8,16 @@ import {
   Filter,
   ChevronsUpDown,
   CheckCircle,
-  Clock,
-  PlayCircle,
   Send,
 } from 'lucide-react';
-import { useFeedbackStore, useADStore, useCCStore, useVideoStore, useUIStore, useGuideStore } from '../../stores';
+import {
+  useFeedbackStore,
+  useADStore,
+  useCCStore,
+  useVideoStore,
+  useUIStore,
+  useGuideStore,
+} from '../../stores';
 import type { Feedback, FeedbackStatus } from '../../../shared/types';
 
 const STATUS_LABELS: Record<FeedbackStatus, string> = {
@@ -136,7 +141,9 @@ export function FeedbackPanel() {
         </div>
 
         <button
-          onClick={() => (expandedIds.size === filteredFeedbacks.length ? collapseAll() : expandAll())}
+          onClick={() =>
+            expandedIds.size === filteredFeedbacks.length ? collapseAll() : expandAll()
+          }
           className="p-1.5 text-gray-500 hover:text-white transition-colors"
           title={expandedIds.size === filteredFeedbacks.length ? '모두 접기' : '모두 펼치기'}
         >
@@ -189,8 +196,8 @@ export function FeedbackPanel() {
                   feedback.status === 'resolved'
                     ? 'bg-dark-surface/50 border-dark-border/50'
                     : feedback.status === 'in_progress'
-                    ? 'bg-dark-surface border-accent-yellow/30'
-                    : 'bg-dark-surface border-brand-brown/30'
+                      ? 'bg-dark-surface border-accent-yellow/30'
+                      : 'bg-dark-surface border-brand-brown/30'
                 }`}
               >
                 {/* 헤더 */}
@@ -283,7 +290,9 @@ export function FeedbackPanel() {
                             {formatTimecode(cardInfo.tcIn)}
                           </span>
                           <span className="mx-2">•</span>
-                          <span className="text-gray-400 line-clamp-1">{cardInfo.text || '(내용 없음)'}</span>
+                          <span className="text-gray-400 line-clamp-1">
+                            {cardInfo.text || '(내용 없음)'}
+                          </span>
                         </div>
                         <ExternalLink className="w-3.5 h-3.5 text-gray-600 group-hover:text-accent-yellow flex-shrink-0" />
                       </div>

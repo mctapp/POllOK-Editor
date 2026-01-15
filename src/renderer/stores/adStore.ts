@@ -55,9 +55,7 @@ export const useADStore = create<ADState>((set, get) => ({
     set((state) => ({
       descriptions: state.descriptions
         .map((desc) =>
-          desc.id === id
-            ? { ...desc, ...updates, modifiedAt: new Date().toISOString() }
-            : desc
+          desc.id === id ? { ...desc, ...updates, modifiedAt: new Date().toISOString() } : desc
         )
         .sort((a, b) => a.tcIn - b.tcIn),
     }));
@@ -72,9 +70,7 @@ export const useADStore = create<ADState>((set, get) => ({
 
   deleteSelected: () => {
     set((state) => ({
-      descriptions: state.descriptions.filter(
-        (desc) => !state.selectedIds.includes(desc.id)
-      ),
+      descriptions: state.descriptions.filter((desc) => !state.selectedIds.includes(desc.id)),
       selectedIds: [],
     }));
   },

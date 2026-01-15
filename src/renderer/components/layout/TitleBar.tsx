@@ -22,17 +22,13 @@ export function TitleBar() {
     return unsubscribe;
   }, []);
 
-  const title = project
-    ? `${isDirty ? '● ' : ''}${project.title} - AccessON`
-    : 'AccessON';
+  const title = project ? `${isDirty ? '● ' : ''}${project.title} - AccessON` : 'AccessON';
 
   return (
     <div className="h-8 bg-dark-surface flex items-center justify-between select-none border-b border-dark-border">
       {/* 드래그 영역 */}
       <div
-        className={`flex-1 h-full app-drag-region flex items-center ${
-          isMac ? 'pl-20' : 'pl-2'
-        }`}
+        className={`flex-1 h-full app-drag-region flex items-center ${isMac ? 'pl-20' : 'pl-2'}`}
       >
         <span className="text-xs text-gray-400 truncate">{title}</span>
       </div>

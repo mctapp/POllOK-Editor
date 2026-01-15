@@ -158,7 +158,7 @@ export class HighSpeedAnalyzer extends BaseAnalyzer {
         if (progress !== lastProgress && progress % 5 === 0) {
           lastProgress = progress;
           const elapsed = (Date.now() - startTime) / 1000;
-          const remaining = Math.max(0, Math.ceil((actualDuration - elapsed)));
+          const remaining = Math.max(0, Math.ceil(actualDuration - elapsed));
           this.reportProgress(progress, `오디오 분석 중... (약 ${remaining}초 남음)`);
         }
 

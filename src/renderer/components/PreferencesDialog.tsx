@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { X, RotateCcw, Keyboard, AudioWaveform, LayoutPanelTop, Type, Subtitles } from 'lucide-react';
+import {
+  X,
+  RotateCcw,
+  Keyboard,
+  AudioWaveform,
+  LayoutPanelTop,
+  Type,
+  Subtitles,
+} from 'lucide-react';
 import {
   useSettingsStore,
   SHORTCUT_LABELS,
@@ -217,7 +225,9 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
                   max="0.5"
                   step="0.05"
                   value={timeline.adTrackHeightRatio}
-                  onChange={(e) => setTimelineSettings({ adTrackHeightRatio: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setTimelineSettings({ adTrackHeightRatio: Number(e.target.value) })
+                  }
                   className="w-full accent-accent-yellow"
                 />
               </div>
@@ -232,7 +242,9 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
                   max="0.5"
                   step="0.05"
                   value={timeline.ccTrackHeightRatio}
-                  onChange={(e) => setTimelineSettings({ ccTrackHeightRatio: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setTimelineSettings({ ccTrackHeightRatio: Number(e.target.value) })
+                  }
                   className="w-full accent-accent-yellow"
                 />
               </div>
@@ -247,7 +259,9 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
                   max="0.5"
                   step="0.05"
                   value={timeline.audioTrackHeightRatio}
-                  onChange={(e) => setTimelineSettings({ audioTrackHeightRatio: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setTimelineSettings({ audioTrackHeightRatio: Number(e.target.value) })
+                  }
                   className="w-full accent-accent-yellow"
                 />
               </div>
@@ -404,8 +418,8 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
                     overlay.adPosition === 'top'
                       ? 'top-8'
                       : overlay.adPosition === 'center'
-                      ? 'top-1/2 -translate-y-1/2'
-                      : 'bottom-8'
+                        ? 'top-1/2 -translate-y-1/2'
+                        : 'bottom-8'
                   }`}
                 >
                   <div className="px-3 py-1 bg-brand-brown/80 rounded">
@@ -458,7 +472,10 @@ export function PreferencesDialog({ isOpen, onClose }: PreferencesDialogProps) {
                 <button
                   onClick={() => {
                     Object.keys(DEFAULT_SHORTCUTS).forEach((key) => {
-                      setShortcut(key as keyof KeyboardShortcuts, DEFAULT_SHORTCUTS[key as keyof KeyboardShortcuts]);
+                      setShortcut(
+                        key as keyof KeyboardShortcuts,
+                        DEFAULT_SHORTCUTS[key as keyof KeyboardShortcuts]
+                      );
                     });
                   }}
                   className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
