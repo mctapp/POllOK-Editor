@@ -6,6 +6,7 @@ export { useUIStore } from './uiStore';
 export { useMemoStore } from './memoStore';
 export { useGuideStore } from './guideStore';
 export { useFeedbackStore } from './feedbackStore';
+export { useExpressionStore } from './expressionStore';
 export {
   useSettingsStore,
   DEFAULT_SHORTCUTS,
