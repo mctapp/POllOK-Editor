@@ -17,7 +17,7 @@ import type { Feedback, FeedbackStatus } from '../../../shared/types';
 
 const STATUS_LABELS: Record<FeedbackStatus, string> = {
   pending: '보완요청',
-  in_progress: '진행중',
+  in_progress: '수정완료',
   resolved: '보완완료',
 };
 
@@ -129,7 +129,7 @@ export function FeedbackPanel() {
           >
             <option value="all">전체 피드백</option>
             <option value="pending">보완요청</option>
-            <option value="in_progress">진행중</option>
+            <option value="in_progress">수정완료</option>
             <option value="resolved">보완완료</option>
           </select>
           <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -285,44 +285,39 @@ export function FeedbackPanel() {
                     {appMode === 'writer' && feedback.status !== 'resolved' && (
                       <div className="space-y-2 pt-2 border-t border-dark-border/50">
                         {/* 답변 입력 */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
+                        <div className="flex flex-col gap-2">
+                          <textarea
                             value={replyInputs[feedback.id] || ''}
                             onChange={(e) =>
                               setReplyInputs((prev) => ({ ...prev, [feedback.id]: e.target.value }))
                             }
                             placeholder="답변 입력..."
-                            className="flex-1 px-2 py-1 text-xs bg-dark-bg border border-dark-border rounded focus:border-accent-green focus:outline-none text-white"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleSubmitReply(feedback.id);
-                              }
-                            }}
+                            rows={2}
+                            className="w-full px-2 py-1.5 text-xs bg-dark-bg border border-dark-border rounded focus:border-accent-green focus:outline-none text-white resize-y min-h-[60px]"
                           />
-                          <button
-                            onClick={() => handleSubmitReply(feedback.id)}
-                            disabled={!replyInputs[feedback.id]?.trim()}
-                            className="p-1 text-gray-500 hover:text-accent-green disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="답변 저장"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {/* 상태 변경 버튼 */}
-                        <div className="flex items-center gap-2">
-                          {feedback.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => setStatus(feedback.id, 'in_progress')}
-                                className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
-                              >
-                                <PlayCircle className="w-3 h-3" />
-                                진행중
-                              </button>
-                            </>
-                          )}
+                          <div className="flex items-center justify-between">
+                            {/* 상태 변경 버튼 */}
+                            <div className="flex items-center gap-2">
+                              {feedback.status === 'pending' && (
+                                <button
+                                  onClick={() => setStatus(feedback.id, 'in_progress')}
+                                  className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                  수정완료
+                                </button>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleSubmitReply(feedback.id)}
+                              disabled={!replyInputs[feedback.id]?.trim()}
+                              className="flex items-center gap-1 px-2 py-1 text-xs bg-accent-green/20 text-accent-green rounded hover:bg-accent-green/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              title="답변 저장"
+                            >
+                              <Send className="w-3 h-3" />
+                              저장
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}

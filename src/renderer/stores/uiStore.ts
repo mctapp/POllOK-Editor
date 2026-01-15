@@ -42,7 +42,7 @@ export const useUIStore = create<UIState>((set) => ({
   appMode: 'writer',
   activeTab: 'ad',
   openDialog: null,
-  leftPanelWidth: 70, // 기본 비디오 패널 너비 (70%)
+  leftPanelWidth: 65, // 기본 비디오 패널 너비 (65%) - 피드백 패널 공간 확보
   scriptPanelWidth: 400,
   timelineHeight: 200,
   isTimelineCollapsed: false,
