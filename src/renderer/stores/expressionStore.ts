@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { Movie, Expression, SynonymGroup } from '../../shared/types';
 
 // 기본 유의어 사전 (화면해설 빈출 표현)
@@ -115,6 +114,10 @@ interface ExpressionState {
   expressions: Expression[];
   synonymGroups: SynonymGroup[];
 
+  // 로딩/초기화 상태
+  isInitialized: boolean;
+  isLoading: boolean;
+
   // 검색 관련
   searchQuery: string;
   searchResults: Expression[];
@@ -124,25 +127,28 @@ interface ExpressionState {
   // 모달 상태
   isDialogOpen: boolean;
 
+  // 초기화
+  initialize: () => Promise<void>;
+
   // 영화 관리
-  addMovie: (movie: Omit<Movie, 'id' | 'createdAt'>) => Movie;
-  updateMovie: (id: string, updates: Partial<Movie>) => void;
-  deleteMovie: (id: string) => void;
+  addMovie: (movie: Omit<Movie, 'id' | 'createdAt'>) => Promise<Movie>;
+  updateMovie: (id: string, updates: Partial<Movie>) => Promise<void>;
+  deleteMovie: (id: string) => Promise<void>;
 
   // 표현 관리
-  addExpression: (expression: Omit<Expression, 'id' | 'createdAt' | 'modifiedAt'>) => void;
-  addExpressions: (expressions: Omit<Expression, 'id' | 'createdAt' | 'modifiedAt'>[]) => void;
-  updateExpression: (id: string, updates: Partial<Expression>) => void;
-  deleteExpression: (id: string) => void;
-  toggleHighlight: (id: string) => void;
+  addExpression: (expression: Omit<Expression, 'id' | 'createdAt' | 'modifiedAt'>) => Promise<void>;
+  addExpressions: (expressions: Omit<Expression, 'id' | 'createdAt' | 'modifiedAt'>[]) => Promise<void>;
+  updateExpression: (id: string, updates: Partial<Expression>) => Promise<void>;
+  deleteExpression: (id: string) => Promise<void>;
+  toggleHighlight: (id: string) => Promise<void>;
 
   // 유의어 관리
-  addSynonymGroup: (group: Omit<SynonymGroup, 'id'>) => void;
+  addSynonymGroup: (group: Omit<SynonymGroup, 'id'>) => Promise<void>;
   updateSynonymGroup: (id: string, updates: Partial<SynonymGroup>) => void;
-  deleteSynonymGroup: (id: string) => void;
+  deleteSynonymGroup: (id: string) => Promise<void>;
 
   // 검색
-  search: (query: string) => void;
+  search: (query: string) => Promise<void>;
   clearSearch: () => void;
   setSelectedMovieId: (id: string | null) => void;
   setShowHighlightedOnly: (show: boolean) => void;
@@ -152,7 +158,7 @@ interface ExpressionState {
   closeDialog: () => void;
 
   // SRT 가져오기
-  importFromSRT: (srtContent: string, movieInfo: Omit<Movie, 'id' | 'createdAt'>) => void;
+  importFromSRT: (srtContent: string, movieInfo: Omit<Movie, 'id' | 'createdAt'>) => Promise<void>;
 }
 
 // SRT 파싱 함수
@@ -197,202 +203,383 @@ function generateId(): string {
   });
 }
 
-export const useExpressionStore = create<ExpressionState>()(
-  persist(
-    (set, get) => ({
-      // 초기 상태
-      movies: [],
-      expressions: [],
-      synonymGroups: DEFAULT_SYNONYMS,
-      searchQuery: '',
-      searchResults: [],
-      selectedMovieId: null,
-      showHighlightedOnly: false,
-      isDialogOpen: false,
+// SQLite 레코드를 프론트엔드 타입으로 변환
+function movieRecordToMovie(record: {
+  id: string;
+  title: string;
+  director: string | null;
+  year: number | null;
+  genre: string | null;
+  writer: string | null;
+  createdAt: string;
+}): Movie {
+  return {
+    id: record.id,
+    title: record.title,
+    director: record.director || undefined,
+    year: record.year || undefined,
+    genre: record.genre || undefined,
+    writer: record.writer || undefined,
+    createdAt: record.createdAt,
+  };
+}
 
-      // 영화 관리
-      addMovie: (movieData) => {
-        const movie: Movie = {
-          ...movieData,
-          id: generateId(),
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({ movies: [...state.movies, movie] }));
-        return movie;
-      },
+function expressionRecordToExpression(record: {
+  id: string;
+  movieId: string;
+  timecode: string;
+  text: string;
+  isHighlighted: number;
+  tags: string | null;
+  note: string | null;
+  createdAt: string;
+  modifiedAt: string;
+}): Expression {
+  return {
+    id: record.id,
+    movieId: record.movieId,
+    timecode: record.timecode,
+    text: record.text,
+    isHighlighted: record.isHighlighted === 1,
+    tags: record.tags ? JSON.parse(record.tags) : undefined,
+    note: record.note || undefined,
+    createdAt: record.createdAt,
+    modifiedAt: record.modifiedAt,
+  };
+}
 
-      updateMovie: (id, updates) => {
-        set((state) => ({
-          movies: state.movies.map((m) => (m.id === id ? { ...m, ...updates } : m)),
-        }));
-      },
+function synonymRecordToGroup(record: {
+  id: string;
+  baseWord: string;
+  synonyms: string;
+  category: string | null;
+}): SynonymGroup {
+  return {
+    id: record.id,
+    baseWord: record.baseWord,
+    synonyms: JSON.parse(record.synonyms),
+    category: record.category || undefined,
+  };
+}
 
-      deleteMovie: (id) => {
-        set((state) => ({
-          movies: state.movies.filter((m) => m.id !== id),
-          expressions: state.expressions.filter((e) => e.movieId !== id),
-        }));
-      },
+export const useExpressionStore = create<ExpressionState>()((set, get) => ({
+  // 초기 상태
+  movies: [],
+  expressions: [],
+  synonymGroups: DEFAULT_SYNONYMS,
+  isInitialized: false,
+  isLoading: false,
+  searchQuery: '',
+  searchResults: [],
+  selectedMovieId: null,
+  showHighlightedOnly: false,
+  isDialogOpen: false,
 
-      // 표현 관리
-      addExpression: (expressionData) => {
-        const now = new Date().toISOString();
-        const expression: Expression = {
-          ...expressionData,
-          id: generateId(),
-          createdAt: now,
-          modifiedAt: now,
-        };
-        set((state) => ({ expressions: [...state.expressions, expression] }));
-      },
+  // SQLite에서 데이터 로드
+  initialize: async () => {
+    if (get().isInitialized) return;
+    set({ isLoading: true });
 
-      addExpressions: (expressionsData) => {
-        const now = new Date().toISOString();
-        const newExpressions: Expression[] = expressionsData.map((data) => ({
-          ...data,
-          id: generateId(),
-          createdAt: now,
-          modifiedAt: now,
-        }));
-        set((state) => ({ expressions: [...state.expressions, ...newExpressions] }));
-      },
+    try {
+      // SQLite에서 데이터 로드
+      const [movieRecords, expressionRecords, synonymRecords] = await Promise.all([
+        window.api.expression.getAllMovies(),
+        window.api.expression.getAll(),
+        window.api.expression.getAllSynonyms(),
+      ]);
 
-      updateExpression: (id, updates) => {
-        set((state) => ({
-          expressions: state.expressions.map((e) =>
-            e.id === id ? { ...e, ...updates, modifiedAt: new Date().toISOString() } : e
-          ),
-        }));
-      },
+      const movies = movieRecords.map(movieRecordToMovie);
+      const expressions = expressionRecords.map(expressionRecordToExpression);
 
-      deleteExpression: (id) => {
-        set((state) => ({
-          expressions: state.expressions.filter((e) => e.id !== id),
-        }));
-      },
-
-      toggleHighlight: (id) => {
-        set((state) => ({
-          expressions: state.expressions.map((e) =>
-            e.id === id
-              ? { ...e, isHighlighted: !e.isHighlighted, modifiedAt: new Date().toISOString() }
-              : e
-          ),
-        }));
-      },
-
-      // 유의어 관리
-      addSynonymGroup: (groupData) => {
-        const group: SynonymGroup = {
-          ...groupData,
-          id: generateId(),
-        };
-        set((state) => ({ synonymGroups: [...state.synonymGroups, group] }));
-      },
-
-      updateSynonymGroup: (id, updates) => {
-        set((state) => ({
-          synonymGroups: state.synonymGroups.map((g) => (g.id === id ? { ...g, ...updates } : g)),
-        }));
-      },
-
-      deleteSynonymGroup: (id) => {
-        set((state) => ({
-          synonymGroups: state.synonymGroups.filter((g) => g.id !== id),
-        }));
-      },
-
-      // 검색 (유의어 확장 포함)
-      search: (query) => {
-        const { expressions, synonymGroups, selectedMovieId, showHighlightedOnly } = get();
-        const trimmedQuery = query.trim().toLowerCase();
-
-        if (!trimmedQuery) {
-          set({ searchQuery: query, searchResults: [] });
-          return;
+      // 유의어 그룹: DB에 없으면 기본값 사용, 있으면 DB 데이터 사용
+      let synonymGroups: SynonymGroup[];
+      if (synonymRecords.length > 0) {
+        synonymGroups = synonymRecords.map(synonymRecordToGroup);
+      } else {
+        // 기본 유의어를 DB에 저장
+        synonymGroups = DEFAULT_SYNONYMS;
+        for (const group of DEFAULT_SYNONYMS) {
+          await window.api.expression.addSynonym({
+            id: group.id,
+            baseWord: group.baseWord,
+            synonyms: JSON.stringify(group.synonyms),
+            category: group.category || null,
+          });
         }
+      }
 
-        // 유의어 확장: 검색어와 매칭되는 유의어 그룹 찾기
-        const expandedTerms = new Set<string>([trimmedQuery]);
-
-        for (const group of synonymGroups) {
-          const allWords = [group.baseWord, ...group.synonyms].map((w) => w.toLowerCase());
-          if (allWords.some((word) => word.includes(trimmedQuery) || trimmedQuery.includes(word))) {
-            allWords.forEach((word) => expandedTerms.add(word));
-          }
-        }
-
-        // 필터링
-        let results = expressions.filter((expr) => {
-          const text = expr.text.toLowerCase();
-          return Array.from(expandedTerms).some((term) => text.includes(term));
-        });
-
-        // 영화 필터
-        if (selectedMovieId) {
-          results = results.filter((e) => e.movieId === selectedMovieId);
-        }
-
-        // 하이라이트 필터
-        if (showHighlightedOnly) {
-          results = results.filter((e) => e.isHighlighted);
-        }
-
-        set({ searchQuery: query, searchResults: results });
-      },
-
-      clearSearch: () => {
-        set({ searchQuery: '', searchResults: [] });
-      },
-
-      setSelectedMovieId: (id) => {
-        set({ selectedMovieId: id });
-        // 검색 결과 재필터링
-        const { searchQuery } = get();
-        if (searchQuery) {
-          get().search(searchQuery);
-        }
-      },
-
-      setShowHighlightedOnly: (show) => {
-        set({ showHighlightedOnly: show });
-        // 검색 결과 재필터링
-        const { searchQuery } = get();
-        if (searchQuery) {
-          get().search(searchQuery);
-        }
-      },
-
-      // 모달
-      openDialog: () => set({ isDialogOpen: true }),
-      closeDialog: () => set({ isDialogOpen: false, searchQuery: '', searchResults: [] }),
-
-      // SRT 가져오기
-      importFromSRT: (srtContent, movieInfo) => {
-        const entries = parseSRT(srtContent);
-        if (entries.length === 0) return;
-
-        // 영화 추가
-        const movie = get().addMovie(movieInfo);
-
-        // 표현 추가
-        const expressionsData = entries.map((entry) => ({
-          movieId: movie.id,
-          timecode: entry.timecode,
-          text: entry.text,
-          isHighlighted: false,
-        }));
-
-        get().addExpressions(expressionsData);
-      },
-    }),
-    {
-      name: 'expression-dictionary-storage',
-      partialize: (state) => ({
-        movies: state.movies,
-        expressions: state.expressions,
-        synonymGroups: state.synonymGroups,
-      }),
+      set({
+        movies,
+        expressions,
+        synonymGroups,
+        isInitialized: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Failed to initialize expression store:', error);
+      set({ isLoading: false, isInitialized: true });
     }
-  )
-);
+  },
+
+  // 영화 관리
+  addMovie: async (movieData) => {
+    const movie: Movie = {
+      ...movieData,
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+    };
+
+    await window.api.expression.addMovie({
+      id: movie.id,
+      title: movie.title,
+      director: movie.director || null,
+      year: movie.year || null,
+      genre: movie.genre || null,
+      writer: movie.writer || null,
+      createdAt: movie.createdAt,
+    });
+
+    set((state) => ({ movies: [...state.movies, movie] }));
+    return movie;
+  },
+
+  updateMovie: async (id, updates) => {
+    const movie = get().movies.find((m) => m.id === id);
+    if (!movie) return;
+
+    const updatedMovie = { ...movie, ...updates };
+    await window.api.expression.updateMovie({
+      id: updatedMovie.id,
+      title: updatedMovie.title,
+      director: updatedMovie.director || null,
+      year: updatedMovie.year || null,
+      genre: updatedMovie.genre || null,
+      writer: updatedMovie.writer || null,
+      createdAt: updatedMovie.createdAt,
+    });
+
+    set((state) => ({
+      movies: state.movies.map((m) => (m.id === id ? updatedMovie : m)),
+    }));
+  },
+
+  deleteMovie: async (id) => {
+    await window.api.expression.deleteMovie(id);
+    set((state) => ({
+      movies: state.movies.filter((m) => m.id !== id),
+      expressions: state.expressions.filter((e) => e.movieId !== id),
+    }));
+  },
+
+  // 표현 관리
+  addExpression: async (expressionData) => {
+    const now = new Date().toISOString();
+    const expression: Expression = {
+      ...expressionData,
+      id: generateId(),
+      createdAt: now,
+      modifiedAt: now,
+    };
+
+    await window.api.expression.addExpressionsBulk([
+      {
+        id: expression.id,
+        movieId: expression.movieId,
+        timecode: expression.timecode,
+        text: expression.text,
+        isHighlighted: expression.isHighlighted ? 1 : 0,
+        tags: expression.tags ? JSON.stringify(expression.tags) : null,
+        note: expression.note || null,
+        createdAt: expression.createdAt,
+        modifiedAt: expression.modifiedAt,
+      },
+    ]);
+
+    set((state) => ({ expressions: [...state.expressions, expression] }));
+  },
+
+  addExpressions: async (expressionsData) => {
+    const now = new Date().toISOString();
+    const newExpressions: Expression[] = expressionsData.map((data) => ({
+      ...data,
+      id: generateId(),
+      createdAt: now,
+      modifiedAt: now,
+    }));
+
+    const records = newExpressions.map((expr) => ({
+      id: expr.id,
+      movieId: expr.movieId,
+      timecode: expr.timecode,
+      text: expr.text,
+      isHighlighted: expr.isHighlighted ? 1 : 0,
+      tags: expr.tags ? JSON.stringify(expr.tags) : null,
+      note: expr.note || null,
+      createdAt: expr.createdAt,
+      modifiedAt: expr.modifiedAt,
+    }));
+
+    await window.api.expression.addExpressionsBulk(records);
+    set((state) => ({ expressions: [...state.expressions, ...newExpressions] }));
+  },
+
+  updateExpression: async (id, updates) => {
+    const expression = get().expressions.find((e) => e.id === id);
+    if (!expression) return;
+
+    const updatedExpression = {
+      ...expression,
+      ...updates,
+      modifiedAt: new Date().toISOString(),
+    };
+
+    await window.api.expression.updateExpression({
+      id: updatedExpression.id,
+      movieId: updatedExpression.movieId,
+      timecode: updatedExpression.timecode,
+      text: updatedExpression.text,
+      isHighlighted: updatedExpression.isHighlighted ? 1 : 0,
+      tags: updatedExpression.tags ? JSON.stringify(updatedExpression.tags) : null,
+      note: updatedExpression.note || null,
+      createdAt: updatedExpression.createdAt,
+      modifiedAt: updatedExpression.modifiedAt,
+    });
+
+    set((state) => ({
+      expressions: state.expressions.map((e) => (e.id === id ? updatedExpression : e)),
+    }));
+  },
+
+  deleteExpression: async (id) => {
+    await window.api.expression.deleteExpression(id);
+    set((state) => ({
+      expressions: state.expressions.filter((e) => e.id !== id),
+    }));
+  },
+
+  toggleHighlight: async (id) => {
+    const expression = get().expressions.find((e) => e.id === id);
+    if (!expression) return;
+
+    await get().updateExpression(id, { isHighlighted: !expression.isHighlighted });
+  },
+
+  // 유의어 관리
+  addSynonymGroup: async (groupData) => {
+    const group: SynonymGroup = {
+      ...groupData,
+      id: generateId(),
+    };
+
+    await window.api.expression.addSynonym({
+      id: group.id,
+      baseWord: group.baseWord,
+      synonyms: JSON.stringify(group.synonyms),
+      category: group.category || null,
+    });
+
+    set((state) => ({ synonymGroups: [...state.synonymGroups, group] }));
+  },
+
+  updateSynonymGroup: (id, updates) => {
+    set((state) => ({
+      synonymGroups: state.synonymGroups.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+    }));
+    // Note: 유의어 업데이트는 로컬에서만 처리 (UI에서 사용)
+  },
+
+  deleteSynonymGroup: async (id) => {
+    await window.api.expression.deleteSynonym(id);
+    set((state) => ({
+      synonymGroups: state.synonymGroups.filter((g) => g.id !== id),
+    }));
+  },
+
+  // 검색 (SQLite 검색 + 유의어 확장)
+  search: async (query) => {
+    const { synonymGroups, selectedMovieId, showHighlightedOnly } = get();
+    const trimmedQuery = query.trim().toLowerCase();
+
+    if (!trimmedQuery) {
+      set({ searchQuery: query, searchResults: [] });
+      return;
+    }
+
+    // 유의어 확장: 검색어와 매칭되는 유의어 그룹 찾기
+    const expandedTerms = new Set<string>([trimmedQuery]);
+
+    for (const group of synonymGroups) {
+      const allWords = [group.baseWord, ...group.synonyms].map((w) => w.toLowerCase());
+      if (allWords.some((word) => word.includes(trimmedQuery) || trimmedQuery.includes(word))) {
+        allWords.forEach((word) => expandedTerms.add(word));
+      }
+    }
+
+    // SQLite에서 검색
+    const keywords = Array.from(expandedTerms);
+    const searchResults = await window.api.expression.searchByKeywords(keywords);
+
+    let results = searchResults.map(expressionRecordToExpression);
+
+    // 영화 필터
+    if (selectedMovieId) {
+      results = results.filter((e) => e.movieId === selectedMovieId);
+    }
+
+    // 하이라이트 필터
+    if (showHighlightedOnly) {
+      results = results.filter((e) => e.isHighlighted);
+    }
+
+    set({ searchQuery: query, searchResults: results });
+  },
+
+  clearSearch: () => {
+    set({ searchQuery: '', searchResults: [] });
+  },
+
+  setSelectedMovieId: (id) => {
+    set({ selectedMovieId: id });
+    // 검색 결과 재필터링
+    const { searchQuery } = get();
+    if (searchQuery) {
+      get().search(searchQuery);
+    }
+  },
+
+  setShowHighlightedOnly: (show) => {
+    set({ showHighlightedOnly: show });
+    // 검색 결과 재필터링
+    const { searchQuery } = get();
+    if (searchQuery) {
+      get().search(searchQuery);
+    }
+  },
+
+  // 모달
+  openDialog: () => {
+    // 다이얼로그 열 때 초기화 확인
+    get().initialize();
+    set({ isDialogOpen: true });
+  },
+  closeDialog: () => set({ isDialogOpen: false, searchQuery: '', searchResults: [] }),
+
+  // SRT 가져오기
+  importFromSRT: async (srtContent, movieInfo) => {
+    const entries = parseSRT(srtContent);
+    if (entries.length === 0) return;
+
+    // 영화 추가
+    const movie = await get().addMovie(movieInfo);
+
+    // 표현 추가
+    const expressionsData = entries.map((entry) => ({
+      movieId: movie.id,
+      timecode: entry.timecode,
+      text: entry.text,
+      isHighlighted: false,
+    }));
+
+    await get().addExpressions(expressionsData);
+  },
+}));
