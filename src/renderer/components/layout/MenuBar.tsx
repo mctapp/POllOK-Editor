@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { ChevronRight } from 'lucide-react';
-import { useProjectStore, useUIStore, useADStore, useCCStore, useVideoStore } from '../../stores';
+import { ChevronRight, BookMarked } from 'lucide-react';
+import {
+  useProjectStore,
+  useUIStore,
+  useADStore,
+  useCCStore,
+  useVideoStore,
+  useExpressionStore,
+} from '../../stores';
 import { PreferencesDialog } from '../PreferencesDialog';
+import { ExpressionDictionaryDialog } from '../ExpressionDictionaryDialog';
 
 interface MenuItem {
   label: string;
@@ -15,7 +23,9 @@ interface MenuItem {
 
 export function MenuBar() {
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showExpressionDictionary, setShowExpressionDictionary] = useState(false);
   const { project, createProject, saveProject, closeProject } = useProjectStore();
+  const { expressions } = useExpressionStore();
   const {
     setOpenDialog,
     setActiveTab,
@@ -199,6 +209,11 @@ export function MenuBar() {
         shortcut: 'F1',
         action: toggleGuidePanel,
       },
+      {
+        label: `표현 사전 (${expressions.length})`,
+        shortcut: 'F2',
+        action: () => setShowExpressionDictionary(true),
+      },
       { separator: true },
       {
         label: '작업화면 설정',
@@ -325,7 +340,20 @@ export function MenuBar() {
         </DropdownMenu.Root>
       ))}
 
+      {/* 표현 사전 바로가기 버튼 */}
+      <button
+        onClick={() => setShowExpressionDictionary(true)}
+        className="ml-2 px-2 py-1 text-gray-400 hover:text-accent-yellow hover:bg-gray-700 rounded transition-colors flex items-center gap-1"
+        title="표현 사전 (F2)"
+      >
+        <BookMarked className="w-4 h-4" />
+      </button>
+
       <PreferencesDialog isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
+      <ExpressionDictionaryDialog
+        isOpen={showExpressionDictionary}
+        onClose={() => setShowExpressionDictionary(false)}
+      />
     </div>
   );
 }

@@ -138,6 +138,36 @@ export type FeedbackStatus = 'pending' | 'in_progress' | 'resolved';
 // App Mode Types
 export type AppMode = 'writer' | 'reviewer';
 
+// Expression Dictionary Types (표현 사전)
+export interface Movie {
+  id: string;
+  title: string; // 영화/드라마 제목
+  director?: string; // 감독 (선택)
+  year?: number; // 연도 (선택)
+  genre?: string; // 장르 (선택)
+  createdAt: string;
+}
+
+export interface Expression {
+  id: string;
+  movieId: string; // 소스 영화 ID
+  timecode: string; // 원본 타임코드 (HH:MM:SS,mmm)
+  text: string; // 화면해설 텍스트
+  isHighlighted: boolean; // 돋보이는 표현 체크 (⭐)
+  tags?: string[]; // 상황 태그 (이동, 감정, 외모 등)
+  note?: string; // 메모
+  createdAt: string;
+  modifiedAt: string;
+}
+
+// 유의어 매핑 구조
+export interface SynonymGroup {
+  id: string;
+  baseWord: string; // 기본 단어 (예: 걷다)
+  synonyms: string[]; // 유의어 목록 (걸어가다, 발걸음을 옮기다, 거닐다 등)
+  category?: string; // 분류 (동작, 감정, 외모 등)
+}
+
 // IPC Channels
 export const IpcChannels = {
   // Window
